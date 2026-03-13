@@ -60,21 +60,21 @@ The platform currently supports:
 VMSLWebScraper/
 │
 ├── backend/
-│   ├── api/
-│   ├── models/
-│   ├── scrapers/
-│   └── main.py
+│  ├── api/
+│  ├── models/
+│ ├── scrapers/
+│  └── main.py
 │
 ├── frontend/
 │   ├── src/
 │   │   ├── api/
-│   │   ├── components/
+│  │   ├── components/
 │   │   ├── pages/
-│   │   └── App.tsx
+│  │   └── App.tsx
 │
 ├── data/
 │
-└── README.md
+└─README.md
 
 ## Example API Endpoints
 

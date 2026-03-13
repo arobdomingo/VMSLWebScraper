@@ -56,26 +56,26 @@ The platform currently supports:
 - Structured API responses
 
 ## Project Structure
-
+```
 VMSLWebScraper/
 │
 ├── backend/
 │  ├── api/
 │  ├── models/
-│ ├── scrapers/
+│  ├── scrapers/
 │  └── main.py
 │
 ├── frontend/
 │   ├── src/
 │   │   ├── api/
-│  │   ├── components/
+│   │   ├── components/
 │   │   ├── pages/
-│  │   └── App.tsx
+│   │   └── App.tsx
 │
 ├── data/
 │
 └─README.md
-
+```
 ## Example API Endpoints
 
 ### Standings

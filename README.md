@@ -123,38 +123,38 @@ Returns:
 
 ### 1. Clone the repository
 
+```bash
 git clone https://github.com/yourusername/VMSLWebScraper.git
 cd VMSLWebScraper
+```
 
 ### 2. Install backend dependencies
 
+```bash
 pip install -r requirements.txt
+```
 
 ### 3. Start the backend server
 
 Run this from the root of the repository:
-
+```
 uvicorn backend.main:app --reload
+```
+The API will be available at: http://localhost:8000
 
-The API will be available at:
-
-http://localhost:8000
-
-Interactive API docs:
-
-http://localhost:8000/docs
+Interactive API docs:http://localhost:8000/docs
 
 ### 4. Start the frontend
 
 In a separate terminal:
 
+```bash
 cd frontend
 npm install
 npm run dev
+```
 
-The frontend will be available at:
-
-http://localhost:5173
+The frontend will be available at: http://localhost:5173
 
 ## Future Improvements
 
@@ -164,9 +164,7 @@ Planned improvements include:
 - Historical archives across more seasons
 - Player career statistics
 - Team comparison tools
-- Advanced analytics and visualizations
 - Search and filtering improvements
-- Public API documentation
 
 ## Motivation
 

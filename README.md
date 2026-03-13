@@ -54,3 +54,128 @@ The platform currently supports:
 - HTML parsing
 - Data normalization
 - Structured API responses
+
+## Project Structure
+
+VMSLWebScraper/
+│
+├── backend/
+│   ├── api/
+│   ├── models/
+│   ├── scrapers/
+│   └── main.py
+│
+├── frontend/
+│   ├── src/
+│   │   ├── api/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   └── App.tsx
+│
+├── data/
+│
+└── README.md
+
+## Example API Endpoints
+
+### Standings
+
+GET /standings/{year}/{division}
+
+Returns:
+
+- Games played
+- Wins
+- Losses
+- Goals for
+- Goals against
+- Points
+
+### Top Scorers
+
+GET /scorers/{year}/{division}
+
+Returns:
+
+- Player name
+- Team
+- Goals scored
+- Rank
+
+### MVP Leaders
+
+GET /mvps/{year}/{division}
+
+Returns leaderboard statistics for MVP awards.
+
+### Shutouts
+
+GET /shutouts/{year}/{division}
+
+Returns:
+
+- Goalkeeper name
+- Team
+- Number of shutouts
+- Rank
+
+## Local Development
+
+### 1. Clone the repository
+
+git clone https://github.com/yourusername/VMSLWebScraper.git
+cd VMSLWebScraper
+
+### 2. Install backend dependencies
+
+pip install -r requirements.txt
+
+### 3. Start the backend server
+
+Run this from the root of the repository:
+
+uvicorn backend.main:app --reload
+
+The API will be available at:
+
+http://localhost:8000
+
+Interactive API docs:
+
+http://localhost:8000/docs
+
+### 4. Start the frontend
+
+In a separate terminal:
+
+cd frontend
+npm install
+npm run dev
+
+The frontend will be available at:
+
+http://localhost:5173
+
+## Future Improvements
+
+Planned improvements include:
+
+- Match fixtures and results
+- Historical archives across more seasons
+- Player career statistics
+- Team comparison tools
+- Advanced analytics and visualizations
+- Search and filtering improvements
+- Public API documentation
+
+## Motivation
+
+This project was created to make VMSL data easier to access, explore, and analyze.
+
+It also serves as a full-stack portfolio project demonstrating experience with:
+
+- Web scraping
+- Backend API development
+- Frontend interface design
+- Data transformation and normalization
+- End-to-end application structure

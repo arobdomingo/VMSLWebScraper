@@ -236,42 +236,80 @@ def parse_scorers(year, division):
     return pools
     
 def parse_mvps(year, division):
-
     html = get_html(mvps_url, vmsl_params(year, division))
 
-    tables = pd.read_html(io.StringIO(html), header = 0)
+    soup = BeautifulSoup(html, "html.parser")
+    candidates = []
 
-    def normalize_columns(dataframe):
+    # Find all stats tables that contain a real header row
+    for table in soup.find_all("table", class_="linebox listtable"):
+        if table.find("tr", class_="colhead"):
+            candidates.append(table)
+
+    if not candidates:
+        return []
+
+    pools = []
+
+    for table in candidates:
+        table_html = table
+
+        # Extract visible header labels from the HTML header row
+        header_cells = table_html.find("tr", class_="colhead").find_all("td")
+        header_labels = [td.get_text(strip=True) for td in header_cells]
+
+        dataframe = pd.read_html(io.StringIO(str(table_html)), header=None)[0]
+
+        def is_banner(row):
+            row_text = " ".join(str(text) for text in row if pd.notna(text))
+            row_text = row_text.lower()
+            return "leader" in row_text
+
+        banner_mask = dataframe.apply(is_banner, axis=1)
+        dataframe = dataframe.loc[~banner_mask].reset_index(drop=True)
+
+        def is_header(row):
+            row_values = [str(text).strip().lower() for text in row[:len(header_labels)]]
+            header_values = [h.strip().lower() for h in header_labels]
+            return row_values == header_values
+
+        header_mask = dataframe.apply(is_header, axis=1)
+        dataframe = dataframe.loc[~header_mask].reset_index(drop=True)
+
+        dataframe.columns = header_labels
 
         rename_map = {}
         for column in dataframe.columns:
-            raw = column_to_string(column)
-            cleaned = raw.strip().lower()
-            cleaned = re.sub(r"\s+", "", cleaned)
+            raw = str(column).strip().lower()
+            raw = re.sub(r"\s+", "", raw)
 
-            if "player" in cleaned:
+            if "player" in raw:
                 rename_map[column] = "player"
-            elif "team" in cleaned:
+            elif "team" in raw:
                 rename_map[column] = "team"
-            elif "mvp" in cleaned:
+            elif "mvp" in raw:
                 rename_map[column] = "mvps"
-        
-        return dataframe.rename(columns = rename_map)
-    
-    pools = []
-    
-    for t in tables:
-        t = normalize_columns(t)
-        columns = {str(c).lower() for c in t.columns}
 
-        if {"player", "team", "mvps"}.issubset(columns):
-            t = t[["player", "team", "mvps"]].copy()
+        dataframe = dataframe.rename(columns=rename_map)
 
-            t["player"] = t["player"].astype(str).str.strip()
-            t["team"] = t["team"].astype(str).str.strip()
-            t["mvps"] = pd.to_numeric(t["mvps"], errors = "coerce").fillna(0).astype(int)
+        dataframe["player"] = (
+            dataframe["player"]
+            .astype(str)
+            .str.replace(r"\s+", " ", regex=True)
+            .str.strip()
+        )
+        dataframe["player"] = dataframe["player"].str.replace(r"\(\d+\)$", "", regex=True).str.strip()
 
-            pools.append(t.to_dict(orient = "records"))
+        dataframe["team"] = (
+            dataframe["team"]
+            .astype(str)
+            .str.replace(r"\s+", " ", regex=True)
+            .str.strip()
+        )
+
+        dataframe["mvps"] = pd.to_numeric(dataframe["mvps"], errors="coerce").fillna(0).astype(int)
+
+        pools.append(dataframe.to_dict(orient="records"))
 
     return pools
 

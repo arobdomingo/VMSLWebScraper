@@ -213,7 +213,83 @@ function GoalData() {
                     {data.insights && (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             {/* Insights */}
-                            <div></div>
+                            <div className="rounded-lg border bg-white p-6 space-y-4">
+                                <h2 className="text-xl font-semibold">Team Insights</h2>
+
+                                <div className="grid grid-cols-1 gap-3 text-sm">
+                                    <div className="rounded-md border bg-gray-50 p-3">
+                                        <div className="text-xs font-semibold text-gray-500 mb-1"> Biggest Win</div>
+                                        {data.insights.biggest_win ? (
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="font-medium truncate">
+                                                    {formatScore(data.insights.biggest_win)} vs {data.insights.biggest_win.opponent}
+                                                </div>
+                                                <div className="text-xs text-gray-600">
+                                                    {data.insights.biggest_win.date} • {formatHomeAway(data.insights.biggest_win.is_home)}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="text-gray-600">No wins found.</div>
+                                        )}
+                                    </div>
+
+                                    <div className="rounded-md border bg-gray-50 p-3">
+                                        <div className="text-xs font-semibold text-gray-500 mb-1"> Biggest Loss</div>
+                                        {data.insights.biggest_loss ? (
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="font-medium truncate">
+                                                    {formatScore(data.insights.biggest_loss)} vs {data.insights.biggest_loss.opponent}
+                                                </div>
+                                                <div className="text-xs text-gray-600">
+                                                    {data.insights.biggest_loss.date} • {formatHomeAway(data.insights.biggest_loss.is_home)}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="text-gray-600">No losses found.</div>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <div className="rounded-md border p-3">
+                                            <div className="text-xs text-gray-500">GF ≥ 2 games</div>
+                                            <div className="text-lg font-bold tabular-nums">{data.insights.gf_over_two}</div>
+                                        </div>
+                                        <div className="rounded-md border p-3">
+                                            <div className="text-xs text-gray-500">GA ≤ 1 games</div>
+                                            <div className="text-lg font-bold tabular-nums">{data.insights.ga_under_one}</div>
+                                        </div>
+                                        <div className="rounded-md border p-3">
+                                            <div className="text-xs text-gray-500">Clean Sheets</div>
+                                            <div className="text-lg font-bold tabular-nums">{data.insights.clean_sheets}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Trend */}
+                            <div className="rounded-lg border bg-white p-6 space-y-3">
+                                <h2 className="text-xl font-semibold"> Goal Difference Trend</h2>
+                                <div className="text-sm text-gray-600">
+                                    To be turned into a chart.
+                                </div>
+
+                                <div className="rounded-md border bg-gray-50 p-3 max-h-[320px] overflow-auto">
+                                    <div className="grid grid-cols-12 text-xs font-semibold text-gray-500 border-b pb-2">
+                                        <div className="col-span-7">Date</div>
+                                        <div className="col-span-5">Match GD</div>
+                                    </div>
+
+                                    <div className="divide-y">
+                                        {data.insights.trend.map((point, idx) => (
+                                            <div key={`${point.date}-${idx}`} className="grid grid-cols-12 py-2 text-sm">
+                                                <div className="col-span-7 text-gray-700 tabular-nums">{point.date}</div>
+                                                <div className="col-span-5 font-semibold tabular-nums">{point.gd}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                </div>
+                            </div>
                         </div>
                     )}
                 </>

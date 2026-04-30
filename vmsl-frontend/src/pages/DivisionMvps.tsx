@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useLocation } from "react-router-dom";
 import { apiGet } from "../api/client";
-import type { MvpRow, MvpsResponse } from "../types/mvps";
+import type { MvpsResponse } from "../types/mvps";
 
 function DivisionMvps() {
 

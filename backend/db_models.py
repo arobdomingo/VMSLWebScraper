@@ -8,7 +8,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
-from backend.database import Base
+from database import Base
 
 class DivisionSeason(Base):
     __tablename__ = "division_seasons"

@@ -1,12 +1,12 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from backend.scraper import parse_standings, parse_scorers, parse_mvps, parse_shutouts, find_leagues, find_reg_year, parse_schedule, slugify_name
-import backend.models as models
+from scraper import parse_standings, parse_scorers, parse_mvps, parse_shutouts, find_leagues, find_reg_year, parse_schedule, slugify_name
+import models as models
 from typing import Optional
 
 from sqlalchemy.orm import Session
-from backend.database import get_db
-from backend.crud import save_standings_to_db, get_standings_from_db
+from database import get_db
+from crud import save_standings_to_db, get_standings_from_db
 
 app = FastAPI(title = "VMSL Backend API")
 

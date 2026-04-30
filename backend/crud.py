@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
-from backend.db_models import DivisionSeason, Team, Standing
-from backend.scraper import slugify_name
-from backend import models
+from db_models import DivisionSeason, Team, Standing
+from scraper import slugify_name
+import models
 
 def get_or_create_division_season(db: Session, year, division):
     ds = db.query(DivisionSeason).filter_by(

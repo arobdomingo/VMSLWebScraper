@@ -4,7 +4,6 @@ import { apiGet } from "../api/client"
 import type { ScorerRow, ScorersResponse } from "../types/scorers";
 import type { MvpRow, MvpsResponse } from "../types/mvps";
 import type { KeeperRow, ShutoutsResponse } from "../types/shutouts";
-import type { Stringifier } from "postcss";
 
 interface TeamOverview {
     year: number

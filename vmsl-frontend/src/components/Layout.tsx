@@ -8,7 +8,7 @@ function Layout() {
             <header className="border-b bg-white">
                 <div className="mx-auto max-w-5xl px-4 py-4 flex items-center justify-between">
                     <Link to="/" className="font-semibold text-lg">VMSL Team Hub</Link>
-                    <div className="text-sm text-gray-600">Team-first stats</div>
+                    <div className="text-sm text-gray-600">Team-Oriented Information</div>
                 </div>
             </header>
 

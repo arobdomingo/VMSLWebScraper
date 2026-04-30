@@ -1,8 +1,12 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from backend.scraper import parse_standings, parse_scorers, parse_mvps, parse_shutouts, find_leagues, find_reg_year, parse_schedule, slugify_name
 import backend.models as models
 from typing import Optional
+
+from sqlalchemy.orm import Session
+from backend.database import get_db
+from backend.crud import save_standings_to_db, get_standings_from_db
 
 app = FastAPI(title = "VMSL Backend API")
 
@@ -411,7 +415,13 @@ def list_divisions(year: Optional[int] = None):
     return models.DivisionsResponse(year = year, categories = category_list)
 
 @app.get("/divisions/{year}/{division}/standings", response_model = models.StandingsResponse)
-def read_standings(year, division):
+def read_standings(year, division, db: Session = Depends(get_db)):
+
+    cached_response = get_standings_from_db(db, year, division)
+
+    if cached_response is not None:
+        return cached_response
+
     try:
         pools = parse_standings(year, division)
     except Exception as e:
@@ -420,6 +430,17 @@ def read_standings(year, division):
     if not pools:
         raise HTTPException(status_code = 404, detail = f"No standings found for division {division} in year {year}.")
 
+    save_standings_to_db(db, pools, year, division)
+    cached_response = get_standings_from_db(db, year, division)
+
+    if cached_response is None:
+        raise HTTPException(status_code = 500, detail = "Failed to save standings to database.")
+
+    return cached_response
+
+    # Original Function Operation
+
+    '''
     team_standings = []
     for pool in pools:
         pool_standings = []
@@ -444,7 +465,8 @@ def read_standings(year, division):
             team_standings[i].pool_name = "Pool " + pool_char
     
     return models.StandingsResponse(year = year, division = division, pools = team_standings)
-
+    '''
+    
 @app.get("/divisions/{year}/{division}/scorers", response_model = models.ScorersResponse)
 def read_scorers(year, division):
     try:

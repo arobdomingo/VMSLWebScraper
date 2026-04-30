@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { apiGet } from "../api/client";
-import type { Division, DivisionsResponse } from "../types/division";
+import type { DivisionsResponse } from "../types/division";
 import type { Team, TeamsResponse } from "../types/teams";
 
 

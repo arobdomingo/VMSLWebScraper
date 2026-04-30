@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useLocation } from "react-router-dom";
 import { apiGet } from "../api/client";
-import type { KeeperRow, ShutoutsResponse } from "../types/shutouts";
+import type { ShutoutsResponse } from "../types/shutouts";
 
 function DivisionShutouts() {
   const { year, division, teamSlug } = useParams();

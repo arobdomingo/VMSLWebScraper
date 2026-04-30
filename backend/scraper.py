@@ -149,13 +149,6 @@ def parse_standings(year, division):
     
     return pools
 
-
-
-    standings_html = get_html(standings_url, vmsl_params(2026, 1))
-    standings_rows = parse_standings(standings_html)
-
-    return [r["team"] for r in standings_rows]
-
 def parse_scorers(year, division):
 
     html = get_html(scorers_url, vmsl_params(year, division))

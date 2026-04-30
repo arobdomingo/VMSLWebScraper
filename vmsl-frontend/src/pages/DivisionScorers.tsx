@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useParams, useLocation } from "react-router-dom"
 import { apiGet } from "../api/client"
-import type { ScorerRow, PoolScorers, ScorersResponse } from "../types/scorers";
+import type { ScorersResponse } from "../types/scorers";
 
 function DivisionScorers(){
 

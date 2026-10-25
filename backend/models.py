@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
 
+
 # Relevant Team-Standings Models
 class TeamStanding(BaseModel):
     position: int
@@ -14,14 +15,17 @@ class TeamStanding(BaseModel):
     goal_diff: int
     points: int
 
+
 class PoolStandings(BaseModel):
     pool_name: Optional[str] = None
     teams: list[TeamStanding]
+
 
 class StandingsResponse(BaseModel):
     year: int
     division: str
     pools: list[PoolStandings]
+
 
 # Relevant Top-Scorers Models
 class Scorer(BaseModel):
@@ -29,14 +33,17 @@ class Scorer(BaseModel):
     team_name: str
     goals: int
 
+
 class PoolScorers(BaseModel):
     pool_name: Optional[str] = None
     scorers: list[Scorer]
+
 
 class ScorersResponse(BaseModel):
     year: int
     division: str
     pools: list[PoolScorers]
+
 
 # Relevant MVP-List Models
 class PlayerMvps(BaseModel):
@@ -44,14 +51,17 @@ class PlayerMvps(BaseModel):
     team_name: str
     mvps: int
 
+
 class PoolMvps(BaseModel):
     pool_name: Optional[str] = None
     player_mvps: list[PlayerMvps]
+
 
 class MvpsResponse(BaseModel):
     year: int
     division: str
     pools: list[PoolMvps]
+
 
 # Relevant MVP-List Models
 class Keeper(BaseModel):
@@ -59,47 +69,58 @@ class Keeper(BaseModel):
     team_name: str
     shutouts: int
 
+
 class PoolShutouts(BaseModel):
     pool_name: Optional[str] = None
     keepers: list[Keeper]
+
 
 class ShutoutsResponse(BaseModel):
     year: int
     division: str
     pools: list[PoolShutouts]
 
+
 # Relevant Division Models
 class Division(BaseModel):
     code: str
     name: str
 
+
 class DivisionCategory(BaseModel):
     category_name: str
     divisions: list[Division]
+
 
 class DivisionsResponse(BaseModel):
     year: int
     categories: list[DivisionCategory]
 
+
 # Relevant Team Information
+
 
 class Team(BaseModel):
     team_name: str
     team_slug: str
     pool_name: Optional[str] = None
 
+
 class TeamsResponse(BaseModel):
     year: int
     division: str
     teams: list[Team]
 
+
 # Relevant Team Overview Information
+
 
 class RivalTeam(BaseModel):
     team_name: str
     points: int
     goal_diff: int
-    position: int 
+    position: int
+
 
 class StandingsContext(BaseModel):
     pool_name: Optional[str] = None
@@ -107,6 +128,7 @@ class StandingsContext(BaseModel):
     standing: TeamStanding
     rivals_above: list[RivalTeam] = []
     rivals_below: list[RivalTeam] = []
+
 
 class MatchSummary(BaseModel):
     date: str
@@ -119,6 +141,7 @@ class MatchSummary(BaseModel):
     result: Optional[str] = None
     field: Optional[str] = None
 
+
 class TeamScheduleResponse(BaseModel):
     year: int
     division: str
@@ -126,8 +149,9 @@ class TeamScheduleResponse(BaseModel):
     team_slug: str
     pool_name: Optional[str] = None
 
-    played: list[MatchSummary] =[]
+    played: list[MatchSummary] = []
     upcoming: list[MatchSummary] = []
+
 
 class TeamOverviewResponse(BaseModel):
     year: int
@@ -140,11 +164,14 @@ class TeamOverviewResponse(BaseModel):
     form: list[MatchSummary] = []
     upcoming_fixture: Optional[MatchSummary] = None
 
+
 # Relevant Goal Data Infromation
+
 
 class GoalDiffPoint(BaseModel):
     date: str
     gd: int
+
 
 class GoalDataInsight(BaseModel):
     team_name: str
@@ -158,6 +185,7 @@ class GoalDataInsight(BaseModel):
     clean_sheets: int
 
     trend: list[GoalDiffPoint]
+
 
 class TeamGoalData(BaseModel):
     team_name: str
@@ -173,11 +201,9 @@ class TeamGoalData(BaseModel):
     ga_per_game: float
     gd_per_game: float
 
+
 class GoalDataResponse(BaseModel):
     year: int
     division: str
     teams: list[TeamGoalData]
     insights: GoalDataInsight
-
-
-

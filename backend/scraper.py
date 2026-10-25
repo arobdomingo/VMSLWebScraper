@@ -1,36 +1,33 @@
-import httpx
-import pandas as pd, re
+from .transport import get_html, UpstreamError
+import pandas as pd
+import re
 import io
 from bs4 import BeautifulSoup
+
 scorers_url = "https://vmslsoccer.com/webapps/spappz_live/division_player_stats"
 shutouts_url = "https://vmslsoccer.com/webapps/spappz_live/division_goalie_stats"
 mvps_url = "https://vmslsoccer.com/webapps/spappz_live/division_player_mvps"
 div_stats_url = "https://vmslsoccer.com/webapps/spappz_live/div_stats"
 
-def get_html(url, parameters = None):
-    with httpx.Client(follow_redirects = True, timeout = httpx.Timeout(30)) as client:
-        if parameters:
-            response = client.get(url, params = parameters)
-        else:
-            response = client.get(url)
-        return response.text
-        
+
 def vmsl_params(year, division):
 
     return {
         "reg_year": year,
         "division": division,
-        "sched_type":  "reg",
+        "sched_type": "reg",
         "combined": "",
         "firsttime": 0,
     }
 
+
 # handle the cases in which a given column is not a string
 # # e.g. is a tuple or an integer
 def column_to_string(column):
-    #if isinstance(column, tuple):
+    # if isinstance(column, tuple):
     #    column = " ".join( map(str, column) ) # join the elements if the column is a tuple (multi-level header)
     return str(column)
+
 
 def find_leagues(year):
 
@@ -45,33 +42,52 @@ def find_leagues(year):
 
     soup = BeautifulSoup(html, "html.parser")
 
-    select = soup.find("select", attrs = {"name": "division"})
+    select = soup.find("select", attrs={"name": "division"})
 
-    blacklist = ["choose", "qual", "pro", "rel", "prov", "cup", "ccc", "imperial", "masters", "youth"]
+    blacklist = [
+        "choose",
+        "qual",
+        "pro",
+        "rel",
+        "prov",
+        "cup",
+        "ccc",
+        "imperial",
+        "masters",
+        "youth",
+    ]
     division_categories = {"open": [], "u21": [], "o35": [], "o45": [], "o55": []}
 
     def is_league(name, code):
 
-        if any(b_league.lower() in code.lower() for b_league in blacklist): return False
-        if any(b_league.lower() in name.lower() for b_league in blacklist): return False
+        if any(b_league.lower() in code.lower() for b_league in blacklist):
+            return False
+        if any(b_league.lower() in name.lower() for b_league in blacklist):
+            return False
         return True
 
+    if select is None:
+        raise UpstreamError("Expected season/division selector is missing")
     for option in select.find_all("option"):
+        code = (option.get("value") or "").strip()
+        name = option.get_text(strip=True)
 
-        code = option.get("value").strip()
-        name = option.get_text(strip = True)
-
-        if is_league(name, code): 
-
+        if is_league(name, code):
             league = {"code": code, "name": name}
 
-            if "u21" in code or "u21" in name: division_categories["u21"].append(league)
-            elif code.startswith("m") or "o35" in name: division_categories["o35"].append(league)
-            elif "o45" in code or "o45" in name: division_categories["o45"].append(league)
-            elif "o55" in code or "o55" in name: division_categories["o55"].append(league)
-            else: division_categories["open"].append(league)
-            
+            if "u21" in code or "u21" in name:
+                division_categories["u21"].append(league)
+            elif code.startswith("m") or "o35" in name:
+                division_categories["o35"].append(league)
+            elif "o45" in code or "o45" in name:
+                division_categories["o45"].append(league)
+            elif "o55" in code or "o55" in name:
+                division_categories["o55"].append(league)
+            else:
+                division_categories["open"].append(league)
+
     return division_categories
+
 
 def find_reg_year():
 
@@ -80,23 +96,27 @@ def find_reg_year():
 
     reg_years = []
 
-    select = soup.find("select", attrs = {"name": "reg_year"})
+    select = soup.find("select", attrs={"name": "reg_year"})
+    if select is None:
+        raise UpstreamError("Expected season/division selector is missing")
     for option in select.find_all("option"):
-
-        text = option.get_text(strip = True)
+        text = option.get_text(strip=True)
         pattern = re.search(r"(\d{4})-(\d{4})", text)
         if pattern:
             _, end = pattern.groups()
             reg_years.append(int(end))
-    
+
+    if not reg_years:
+        raise UpstreamError("No season options found")
     return max(reg_years)
+
 
 def parse_standings(year, division):
 
     html = get_html(div_stats_url, vmsl_params(year, division))
 
     # read the given url (first row is the header)
-    tables = pd.read_html(io.StringIO(html), header = 0)
+    tables = read_tables(html)
 
     def normalize_columns(dataframe):
 
@@ -128,8 +148,8 @@ def parse_standings(year, division):
             elif "pts" in cleaned:
                 rename_map[column] = "pts"
 
-        return dataframe.rename(columns = rename_map)
-    
+        return dataframe.rename(columns=rename_map)
+
     pools = []
 
     for t in tables:
@@ -137,214 +157,85 @@ def parse_standings(year, division):
         columns = {str(c).lower() for c in t.columns}
 
         if {"team", "pts", "position"}.issubset(columns):
-            keep = ["position","team","gp","w","d","l","gf","ga","gd","pts"]
+            if not {"gp", "w", "d", "l", "gf", "ga", "gd"}.issubset(columns):
+                raise UpstreamError("Standings columns changed")
+            keep = ["position", "team", "gp", "w", "d", "l", "gf", "ga", "gd", "pts"]
             t = t[keep].copy()
 
             t["team"] = t["team"].astype(str).str.strip()
             for column in keep:
                 if column != "team":
-                    t[column] = pd.to_numeric(t[column], errors = "coerce").fillna(0).astype(int)
+                    try:
+                        t[column] = pd.to_numeric(t[column], errors="raise").astype(int)
+                    except (ValueError, TypeError) as exc:
+                        raise UpstreamError("Invalid standings number") from exc
 
-            pools.append(t.to_dict(orient = "records"))
-    
+            pools.append(t.to_dict(orient="records"))
+
     return pools
+
+
+def parse_player_stats(year, division, url, metric):
+    """Normalize the three leaderboard formats through one header-driven parser."""
+    soup = BeautifulSoup(get_html(url, vmsl_params(year, division)), "html.parser")
+    pools = []
+    for table in soup.find_all("table"):
+        if table.find("table") is not None:
+            continue  # Layout tables contain the same nested leaderboard rows.
+        rows = table.find_all("tr")
+        indices = None
+        players = []
+        for row in rows:
+            cells = [
+                c.get_text(" ", strip=True)
+                for c in row.find_all(["td", "th"], recursive=False)
+            ]
+            headers = [re.sub(r"\s+", "", c.lower()) for c in cells]
+            found = {}
+            for i, h in enumerate(headers):
+                if "player" in h:
+                    found["player"] = i
+                elif "team" in h:
+                    found["team"] = i
+                elif (
+                    "goal"
+                    if metric == "goals"
+                    else "mvp"
+                    if metric == "mvps"
+                    else "shut"
+                ) in h:
+                    found[metric] = i
+            if len(found) == 3:
+                indices = found
+                continue
+            if indices is None or len(cells) <= max(indices.values()):
+                continue
+            value = cells[indices[metric]]
+            if not value.isdigit():
+                continue
+            players.append(
+                {
+                    "player": re.sub(r"\(\d+\)$", "", cells[indices["player"]]).strip(),
+                    "team": cells[indices["team"]],
+                    metric: int(value),
+                }
+            )
+        if indices is not None:
+            pools.append(players)
+    return pools
+
 
 def parse_scorers(year, division):
+    return parse_player_stats(year, division, scorers_url, "goals")
 
-    html = get_html(scorers_url, vmsl_params(year, division))
 
-    soup = BeautifulSoup(html, "html.parser") # object representing HTML
-    candidates = []
-
-    # Find all tables linebox listtable tables
-    # Add table to candidates if it contains a header row (row of class colhead)
-    for table in soup.find_all("table", class_ = "linebox listtable"):
-        if table.find("tr", class_ = "colhead"):
-            candidates.append(table)
-
-    if not candidates:
-        return []
-    
-    table_html = candidates[0] # Take the first candidate table
-
-    pools = []
-
-    for table in candidates:
-        
-        table_html = table
-
-        # Locate header row inside the table, and collects cells inside header
-        # Create a clean list of text labels from header cells
-        header_cells = table_html.find("tr", class_ = "colhead").find_all("td")
-        header_labels = [td.get_text(strip = True) for td in header_cells]
-
-        dataframe = pd.read_html(io.StringIO(str(table_html)), header = None)[0] # dataframe is the first table found
-
-        # Concatenate text from first row
-        # If first row is the banner (contains text), remove it
-
-        def is_banner(row):
-            row_text = " ".join(str(text) for text in row if pd.notna(text))
-            row_text = row_text.lower()
-            return "leader" in row_text
-        
-        banner_mask = dataframe.apply(is_banner, axis = 1)
-        dataframe = dataframe.loc[~banner_mask].reset_index(drop = True)
-
-        def is_header(row):
-
-            row_values = [str(text).strip().lower() for text in row[:len(header_labels)]]
-            header_values = [h.strip().lower() for h in header_labels]
-            return row_values == header_values
-
-        header_mask = dataframe.apply(is_header, axis = 1)
-        dataframe = dataframe.loc[~header_mask].reset_index(drop = True)
-
-        dataframe.columns = header_labels
-
-        rename_map = {}
-        for column in dataframe.columns:
-            raw = str(column).strip().lower()
-            raw = re.sub(r"\s+", "", raw)
-            if "player" in raw:
-                rename_map[column] = "player"
-            elif "team" in raw:
-                rename_map[column] = "team"
-            elif "goal" in raw:
-                rename_map[column] = "goals"
-        
-        dataframe = dataframe.rename(columns = rename_map)
-
-        dataframe["player"] = (dataframe["player"].astype(str).str.replace(r"\s+", " ", regex=True)
-                            .str.strip())
-        dataframe["player"] = dataframe["player"].str.replace(r"\(\d+\)$", "", regex=True).str.strip()
-        
-        dataframe["team"] = (dataframe["team"].astype(str).str.replace(r"\s+", " ", regex=True)
-                            .str.strip())
-        
-        dataframe["goals"] = pd.to_numeric(dataframe["goals"], errors = "coerce").fillna(0).astype(int)
-        
-        pools.append(dataframe.to_dict(orient = "records"))
-    
-    return pools
-    
 def parse_mvps(year, division):
-    html = get_html(mvps_url, vmsl_params(year, division))
+    return parse_player_stats(year, division, mvps_url, "mvps")
 
-    soup = BeautifulSoup(html, "html.parser")
-    candidates = []
-
-    # Find all stats tables that contain a real header row
-    for table in soup.find_all("table", class_="linebox listtable"):
-        if table.find("tr", class_="colhead"):
-            candidates.append(table)
-
-    if not candidates:
-        return []
-
-    pools = []
-
-    for table in candidates:
-        table_html = table
-
-        # Extract visible header labels from the HTML header row
-        header_cells = table_html.find("tr", class_="colhead").find_all("td")
-        header_labels = [td.get_text(strip=True) for td in header_cells]
-
-        dataframe = pd.read_html(io.StringIO(str(table_html)), header=None)[0]
-
-        def is_banner(row):
-            row_text = " ".join(str(text) for text in row if pd.notna(text))
-            row_text = row_text.lower()
-            return "leader" in row_text
-
-        banner_mask = dataframe.apply(is_banner, axis=1)
-        dataframe = dataframe.loc[~banner_mask].reset_index(drop=True)
-
-        def is_header(row):
-            row_values = [str(text).strip().lower() for text in row[:len(header_labels)]]
-            header_values = [h.strip().lower() for h in header_labels]
-            return row_values == header_values
-
-        header_mask = dataframe.apply(is_header, axis=1)
-        dataframe = dataframe.loc[~header_mask].reset_index(drop=True)
-
-        dataframe.columns = header_labels
-
-        rename_map = {}
-        for column in dataframe.columns:
-            raw = str(column).strip().lower()
-            raw = re.sub(r"\s+", "", raw)
-
-            if "player" in raw:
-                rename_map[column] = "player"
-            elif "team" in raw:
-                rename_map[column] = "team"
-            elif "mvp" in raw:
-                rename_map[column] = "mvps"
-
-        dataframe = dataframe.rename(columns=rename_map)
-
-        dataframe["player"] = (
-            dataframe["player"]
-            .astype(str)
-            .str.replace(r"\s+", " ", regex=True)
-            .str.strip()
-        )
-        dataframe["player"] = dataframe["player"].str.replace(r"\(\d+\)$", "", regex=True).str.strip()
-
-        dataframe["team"] = (
-            dataframe["team"]
-            .astype(str)
-            .str.replace(r"\s+", " ", regex=True)
-            .str.strip()
-        )
-
-        dataframe["mvps"] = pd.to_numeric(dataframe["mvps"], errors="coerce").fillna(0).astype(int)
-
-        pools.append(dataframe.to_dict(orient="records"))
-
-    return pools
 
 def parse_shutouts(year, division):
+    return parse_player_stats(year, division, shutouts_url, "shutouts")
 
-    html = get_html(shutouts_url, vmsl_params(year, division))
-
-    tables = pd.read_html(io.StringIO(html), header = 0)
-
-    def normalize_columns(dataframe):
-
-        rename_map = {}
-        for column in dataframe.columns:
-            raw = column_to_string(column)
-            cleaned = raw.strip().lower()
-            cleaned = re.sub(r"\s+", "", cleaned)
-
-            if "player" in cleaned:
-                rename_map[column] = "player"
-            elif "team" in cleaned:
-                rename_map[column] = "team"
-            elif "shut" in cleaned:
-                rename_map[column] = "shutouts"
-        
-        return dataframe.rename(columns = rename_map)
-
-    pools = []
-    
-    for t in tables:
-        t = normalize_columns(t)
-        columns = {str(c).lower() for c in t.columns}
-
-        if {"player", "team", "shutouts"}.issubset(columns):
-            t = t[["player", "team", "shutouts"]].copy()
-
-            t["player"] = t["player"].astype(str).str.strip()
-            t["team"] = t["team"].astype(str).str.strip()
-            t["shutouts"] = pd.to_numeric(t["shutouts"], errors = "coerce").fillna(0).astype(int)
-
-            pools.append(t.to_dict(orient = "records"))
-    
-    return pools
 
 def parse_schedule(year, division):
 
@@ -375,26 +266,43 @@ def parse_schedule(year, division):
                 rename_map[column] = "result"
             elif "field" in cleaned:
                 rename_map[column] = "field"
-          
-        return dataframe.rename(columns = rename_map)
 
-    tables = pd.read_html(io.StringIO(html), header = 0)
+        return dataframe.rename(columns=rename_map)
+
+    tables = read_tables(html)
 
     for t in tables:
-
         t = normalize_columns(t)
         columns = {str(c).lower() for c in t.columns}
 
         if {"schedule", "date"}.issubset(columns):
+            if not {
+                "type",
+                "division",
+                "hometeam",
+                "result",
+                "awayteam",
+                "field",
+            }.issubset(columns):
+                raise UpstreamError("Schedule columns changed")
 
-            keep = ["schedule","type","date","division","hometeam","result","awayteam","field"]
+            keep = [
+                "schedule",
+                "type",
+                "date",
+                "division",
+                "hometeam",
+                "result",
+                "awayteam",
+                "field",
+            ]
             t = t[keep].copy()
 
             for column in keep:
                 t[column] = t[column].astype(str).str.strip()
 
             # processing the score string
-            result_pattern = re.compile(r"(\d+)\s*[-–—]\s*(\d+)") 
+            result_pattern = re.compile(r"(\d+)\s*[-–—]\s*(\d+)")
 
             home_results = []
             away_results = []
@@ -416,22 +324,27 @@ def parse_schedule(year, division):
             t["awayresult"] = t["awayresult"].where(pd.notna(t["homeresult"]), None)
 
             # processing the date string
-            t["date"] = pd.to_datetime(t["date"], format = "%a %m/%d/%Y %I:%M%p", errors = "coerce").dt.date
+            t["date"] = pd.to_datetime(
+                t["date"], format="%a %m/%d/%Y %I:%M%p", errors="coerce"
+            ).dt.date
 
-            t = t.drop(columns = ["result", "schedule", "type"])
+            t = t.drop(columns=["result", "schedule", "type"])
 
-            t = t.dropna(subset = ["date", "hometeam", "awayteam"], how = "any")
+            t = t.dropna(subset=["date", "hometeam", "awayteam"], how="any")
 
             import math
+
             def clean_nan_values(schedule):
                 for row in schedule:
                     for key, value in row.items():
-                        if isinstance(value,float) and math.isnan(value): row[key] = None
+                        if isinstance(value, float) and math.isnan(value):
+                            row[key] = None
                 return schedule
 
-            return clean_nan_values(t.to_dict(orient = "records"))
-        
+            return clean_nan_values(t.to_dict(orient="records"))
+
     return []
+
 
 def slugify_name(name):
     slug = name.lower().strip()
@@ -439,6 +352,9 @@ def slugify_name(name):
     slug = re.sub(r"-{2,}", "-", slug).strip("-")
     return slug
 
-# To Do Next:
-# Plan the Purpose and Final Implementation
-# Design an Interface and Think about System Architecture
+
+def read_tables(html):
+    try:
+        return pd.read_html(io.StringIO(html), header=0, flavor="lxml")
+    except ValueError as exc:
+        raise UpstreamError("Expected statistics tables are missing") from exc

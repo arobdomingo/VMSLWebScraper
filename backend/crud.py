@@ -1,21 +1,20 @@
 from sqlalchemy.orm import Session
-from db_models import DivisionSeason, Team, Standing
-from scraper import slugify_name
-import models
+from .db_models import DivisionSeason, Team, Standing
+from .scraper import slugify_name
+from . import models
+
 
 def get_or_create_division_season(db: Session, year, division):
-    ds = db.query(DivisionSeason).filter_by(
-        year = year,
-        division_code = division
-    ).first()
+    ds = db.query(DivisionSeason).filter_by(year=year, division_code=division).first()
 
     if not ds:
-        ds = DivisionSeason(year = year, division_code = division)
+        ds = DivisionSeason(year=year, division_code=division)
         db.add(ds)
         db.commit()
         db.refresh(ds)
-    
+
     return ds
+
 
 def save_standings_to_db(db: Session, pools, year, division):
     ds = get_or_create_division_season(db, year, division)
@@ -26,19 +25,21 @@ def save_standings_to_db(db: Session, pools, year, division):
         pool_name = f"Pool {chr(ord('A') + i)}" if multi_pool else None
 
         for row in pool:
-
             # Create/Find Team
-            team = db.query(Team).filter_by(
-                division_season_id = ds.id,
-                team_slug = slugify_name(row["team"])
-            ).first()
+            team = (
+                db.query(Team)
+                .filter_by(
+                    division_season_id=ds.id, team_slug=slugify_name(row["team"])
+                )
+                .first()
+            )
 
             if not team:
                 team = Team(
-                    division_season_id = ds.id,
-                    team_name = row["team"],
-                    team_slug = slugify_name(row["team"]),
-                    pool_name = pool_name
+                    division_season_id=ds.id,
+                    team_name=row["team"],
+                    team_slug=slugify_name(row["team"]),
+                    pool_name=pool_name,
                 )
 
                 db.add(team)
@@ -46,16 +47,14 @@ def save_standings_to_db(db: Session, pools, year, division):
                 db.refresh(team)
 
             # Insert/Update Standings
-            standing = db.query(Standing).filter_by(
-                division_season_id = ds.id,
-                team_id = team.id
-            ).first()
+            standing = (
+                db.query(Standing)
+                .filter_by(division_season_id=ds.id, team_id=team.id)
+                .first()
+            )
 
             if not standing:
-                standing = Standing(
-                    division_season_id = ds.id,
-                    team_id = team.id
-                )
+                standing = Standing(division_season_id=ds.id, team_id=team.id)
 
                 db.add(standing)
 
@@ -69,18 +68,16 @@ def save_standings_to_db(db: Session, pools, year, division):
             standing.goals_against = row["ga"]
             standing.goal_diff = row["gd"]
             standing.points = row["pts"]
-        
+
     db.commit()
 
+
 def get_standings_from_db(db: Session, year, division):
-    ds = db.query(DivisionSeason).filter_by(
-        year = year,
-        division_code = division
-    ).first()
+    ds = db.query(DivisionSeason).filter_by(year=year, division_code=division).first()
 
     if ds is None:
         return None
-    
+
     standings = (
         db.query(Standing)
         .join(Team)
@@ -114,19 +111,14 @@ def get_standings_from_db(db: Session, year, division):
                 points=standing.points,
             )
         )
-    
+
     pool_responses = []
 
     for pool_name, teams in pools_dict.items():
         pool_responses.append(
             models.PoolStandings(
-                pool_name = None if pool_name == "default" else pool_name,
-                teams = teams
+                pool_name=None if pool_name == "default" else pool_name, teams=teams
             )
         )
-    
-    return models.StandingsResponse(
-        year = year,
-        division = division,
-        pools = pool_responses
-    )
+
+    return models.StandingsResponse(year=year, division=division, pools=pool_responses)

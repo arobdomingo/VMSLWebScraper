@@ -15,7 +15,7 @@
 - Frontend: TypeScript compilation, ESLint and Vite production build passed after compatible dependency updates.
 - npm audit reported 16 vulnerabilities in the original lockfile; compatible updates produced zero reported vulnerabilities at validation time. This is a point-in-time registry result, not a security guarantee.
 - Live source smoke checks: 2026–27 Division 1 team list, standings, scorers, MVPs and shutouts returned HTTP 200. Browser flow exercised picker → team overview → goal analytics with real upstream data.
-- Manual responsive review: goal analytics at 390 × 844 had equal viewport and document widths (no horizontal page overflow); team dashboard and navigation were visually inspected.
+- Manual responsive review: goal analytics at 390 × 844 had equal viewport and document widths (no horizontal page overflow); team dashboard, navigation and horizontally scrollable standings were visually inspected.
 - Tests revealed and fixed missing-table parser fallback and an incorrectly annotated query parameter. Live source inspection revealed nested leaderboard duplication; a regression test now covers it.
 - Current FastAPI/Starlette test client emits a deprecation warning about HTTPX. Tests pass; revisit the test transport when upgrading that stack.
 

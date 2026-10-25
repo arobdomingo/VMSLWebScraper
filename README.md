@@ -1,5 +1,7 @@
 # VMSL Data & Analytics Platform
 
+**[Try the deployed web app](https://vmsl-web-scraper.vercel.app/)** · [Source code](https://github.com/arobdomingo/VMSLWebScraper)
+
 A full-stack application that extracts publicly available **Vancouver Metro Soccer League** statistics, structures them through a **FastAPI** backend, and displays them in a **React + TypeScript** interface.
 
 ## Features

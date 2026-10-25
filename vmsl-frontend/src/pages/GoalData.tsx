@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import GoalTrend from "../components/GoalTrend";
+import { useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { apiGet } from "../api/client";
+import { useApi } from "../hooks/useApi";
 import type { GoalDataResponse, TeamGoalData, MatchSummary } from "../types/goalData";
 
 type Metric = "gf" | "ga" | "gd";
@@ -19,24 +20,10 @@ function GoalData() {
     const { year, division, teamSlug } = useParams();
 
     const location = useLocation();
-    const selectedTeam = (location.state as any)?.selectedTeam as string | undefined;
-  
-    const [data, setData] = useState<GoalDataResponse | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const selectedTeam = (location.state as { selectedTeam?: string } | null)?.selectedTeam as string | undefined;
   
     const [metric, setMetric] = useState<Metric>("gf");
-
-    
-    useEffect(() => {
-        setLoading(true);
-        setError(null);
-
-        apiGet<GoalDataResponse>(`/divisions/${year}/${division}/goal-data?team_slug=${teamSlug}`)
-            .then(setData)
-            .catch((e) => setError(e.message ?? String(e)))
-            .finally(() => setLoading(false));
-    }, [year, division, teamSlug]);
+    const {data, loading, error} = useApi<GoalDataResponse>(`/divisions/${year}/${division}/goal-data?team_slug=${teamSlug}`);
 
     const selectedRow: TeamGoalData | null = useMemo(() => {
         return data?.teams.find((team) => team.team_slug === teamSlug) ?? null;
@@ -269,9 +256,7 @@ function GoalData() {
                             {/* Trend */}
                             <div className="rounded-lg border bg-white p-6 space-y-3">
                                 <h2 className="text-xl font-semibold"> Goal Difference Trend</h2>
-                                <div className="text-sm text-gray-600">
-                                    To be turned into a chart.
-                                </div>
+                                <GoalTrend points={data.insights.trend} />
 
                                 <div className="rounded-md border bg-gray-50 p-3 max-h-[320px] overflow-auto">
                                     <div className="grid grid-cols-12 text-xs font-semibold text-gray-500 border-b pb-2">

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+
 import { Link, useLocation, useParams } from "react-router-dom";
-import { apiGet } from "../api/client";
+import { useApi } from "../hooks/useApi";
 import type { StandingsResponse } from "../types/standings.ts"
 
 type LocationState = { highlightTeam?: string}
@@ -10,22 +10,7 @@ function Standings(){
     const { year, division } = useParams();
     const location = useLocation();
     const highlightTeam = (location.state as LocationState | null)?.highlightTeam;
-
-    const [data, setData] = useState<StandingsResponse | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-    
-        setLoading(true);
-        setError(null);
-
-        apiGet<StandingsResponse>(`/divisions/${year}/${division}/standings`)
-            .then(setData)
-            .catch((e) => setError(e.message ?? String(e)))
-            .finally(() => setLoading(false));
-        
-    }, [year, division]);
+    const {data, loading, error} = useApi<StandingsResponse>(`/divisions/${year}/${division}/standings`);
 
     return (
         <div className="space-y-4">
@@ -67,42 +52,14 @@ function Standings(){
                                 </div>
                             )}
 
-                            <div className="grid grid-cols-13 gap-2 border-b pb-2 text-xs font-semibold text-gray-500">
-                                <div className="col-span-1">Pos</div>
-                                <div className="col-span-6">Team</div>
-                                <div className="col-span-1">GP</div>
-                                <div className="col-span-1">Pts</div>
-                                <div className="col-span-1">W</div>
-                                <div className="col-span-1">D</div>
-                                <div className="col-span-1">L</div>
-                                <div className="col-span-1">GD</div>
-                            </div>
-
-                            <div className="mt-2 space-y-1">
-                                {pool.teams.map((team, idx) => {
-                                    const toHighlight = team.team_name === highlightTeam;
-
-                                    return (
-                                        <div
-                                            key={idx}
-                                            className={
-                                                "grid grid-cols-13 gap-2 rounded-md px-2 py-2 text-sm " + 
-                                                (toHighlight ? "bg-blue-50 border border-blue-200" : "")
-                                            }
-                                        >
-                                            <div className="col-span-1 font-medium">{team.position}</div>
-                                            <div className="col-span-6 text-sm font-medium">{team.team_name}</div>
-
-                                            <div className="col-span-1 text-right">{team.games_played}</div>
-                                            <div className="col-span-1 text-right font-semibold">{team.points}</div>
-                                            <div className="col-span-1 text-right">{team.wins}</div>
-                                            <div className="col-span-1 text-right">{team.draws}</div>
-                                            <div className="col-span-1 text-right">{team.losses}</div>
-                                            <div className="col-span-1 text-right">{team.goal_diff}</div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
+                            <div className="table-scroll"><table>
+                                <caption className="sr-only">Division {division} standings, season ending {year}, {pool.pool_name || "all teams"}</caption>
+                                <thead><tr>{["Pos", "Team", "GP", "Pts", "W", "D", "L", "GD"].map(label => <th scope="col" key={label}>{label}</th>)}</tr></thead>
+                                <tbody>{pool.teams.map(team => <tr key={team.team_name} className={team.team_name === highlightTeam ? "bg-blue-50" : "hover:bg-gray-50"}>
+                                    <td>{team.position}</td><td className="font-semibold">{team.team_name}</td><td>{team.games_played}</td><td className="font-bold">{team.points}</td><td>{team.wins}</td><td>{team.draws}</td><td>{team.losses}</td><td>{team.goal_diff > 0 ? "+" : ""}{team.goal_diff}</td>
+                                </tr>)}</tbody>
+                            </table></div>
+                            {pool.teams.length === 0 && <p className="p-4">No standings published yet.</p>}
                         </div>
                     )}
                 </div>

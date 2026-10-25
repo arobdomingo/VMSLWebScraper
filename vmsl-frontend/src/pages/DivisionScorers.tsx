@@ -1,33 +1,20 @@
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { Link, useParams, useLocation } from "react-router-dom"
-import { apiGet } from "../api/client"
+import { useApi } from "../hooks/useApi"
 import type { ScorersResponse } from "../types/scorers";
 
 function DivisionScorers(){
 
     const { year, division, teamSlug } = useParams();
 
-    const [data, setData] = useState<ScorersResponse | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
     const [query, setQuery] = useState("");
 
     //query shows rank within query
-
-    useEffect(() => {
-        setLoading(true)
-        setError(null)
-
-        apiGet<ScorersResponse>(`/divisions/${year}/${division}/scorers`)
-            .then(setData)
-            .catch((e) => setError(e.message ?? String(e)))
-            .finally(() => setLoading(false))
-    }, [year, division])
+    const {data, loading, error} = useApi<ScorersResponse>(`/divisions/${year}/${division}/scorers`);
 
     const allScorers = useMemo(() => {
         const list = data?.pools.flatMap((pool) => pool.scorers) ?? []
-        return list
+        return list.sort((a, b) => b.goals - a.goals)
     }, [data])
 
     const leagueRank = useMemo(() => {
@@ -51,8 +38,7 @@ function DivisionScorers(){
     }, [allScorers, query])
 
     const location = useLocation();
-    const selectedTeam = (location.state as any)?.selectedTeam as string | undefined;
-    console.log(selectedTeam)
+    const selectedTeam = (location.state as { selectedTeam?: string } | null)?.selectedTeam as string | undefined;
 
     return(
         <div className="space-y-4">
@@ -91,7 +77,7 @@ function DivisionScorers(){
                 <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search player..."
+                    aria-label="Search players or teams" placeholder="Search players or teams…"
                     className="w-full rounded-md border px-3 py-2 text-sm"
                 >
                 </input>
@@ -118,6 +104,7 @@ function DivisionScorers(){
                     </div>
 
                     <div className="divide-y">
+                        {filtered.length === 0 && <p className="p-4 text-sm text-gray-600">No players match this search.</p>}
                         {filtered.map((scorer, idx) => {
                             const isHighlighted = scorer.team_name === selectedTeam
 

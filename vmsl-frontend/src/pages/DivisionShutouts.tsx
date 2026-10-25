@@ -1,28 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useParams, useLocation } from "react-router-dom";
-import { apiGet } from "../api/client";
+import { useApi } from "../hooks/useApi";
 import type { ShutoutsResponse } from "../types/shutouts";
 
 function DivisionShutouts() {
   const { year, division, teamSlug } = useParams();
 
-  const [data, setData] = useState<ShutoutsResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const [query, setQuery] = useState("");
-
-  useEffect(() => {
-    if (!year || !division) return;
-
-    setLoading(true);
-    setError(null);
-
-    apiGet<ShutoutsResponse>(`/divisions/${year}/${division}/shutouts`)
-      .then(setData)
-      .catch((e) => setError(e.message ?? String(e)))
-      .finally(() => setLoading(false));
-  }, [year, division]);
+    const {data, loading, error} = useApi<ShutoutsResponse>(`/divisions/${year}/${division}/shutouts`);
 
   const allKeepers = useMemo(() => {
     return data?.pools.flatMap((p) => p.keepers) ?? [];
@@ -49,7 +35,7 @@ function DivisionShutouts() {
   }, [allKeepers, query]);
 
   const location = useLocation();
-  const selectedTeam = (location.state as any)?.selectedTeam as string | undefined;
+  const selectedTeam = (location.state as { selectedTeam?: string } | null)?.selectedTeam as string | undefined;
 
   return (
     <div className="space-y-4">

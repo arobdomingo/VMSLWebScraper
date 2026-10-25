@@ -1,27 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useParams, useLocation } from "react-router-dom";
-import { apiGet } from "../api/client";
+import { useApi } from "../hooks/useApi";
 import type { MvpsResponse } from "../types/mvps";
 
 function DivisionMvps() {
 
 const { year, division, teamSlug } = useParams();
 
-  const [data, setData] = useState<MvpsResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const [query, setQuery] = useState("");
-
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-
-    apiGet<MvpsResponse>(`/divisions/${year}/${division}/mvps`)
-      .then(setData)
-      .catch((e) => setError(e.message ?? String(e)))
-      .finally(() => setLoading(false));
-  }, [year, division]);
+    const {data, loading, error} = useApi<MvpsResponse>(`/divisions/${year}/${division}/mvps`);
   
   const allMvps = useMemo(() => {
     return data?.pools.flatMap((pool) => pool.player_mvps) ?? []
@@ -47,7 +35,7 @@ const { year, division, teamSlug } = useParams();
   }, [allMvps, query])
 
   const location = useLocation()
-  const selectedTeam = (location.state as any)?.selectedTeam as string | undefined
+  const selectedTeam = (location.state as { selectedTeam?: string } | null)?.selectedTeam as string | undefined
 
   return(
     <div className="space-y-4">

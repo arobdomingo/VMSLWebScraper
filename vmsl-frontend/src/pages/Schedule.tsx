@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react"
+import { useMemo } from "react"
 import { Link, useParams } from "react-router-dom"
-import { apiGet } from "../api/client"
+import { useApi } from "../hooks/useApi"
 import type { MatchSummary, TeamScheduleResponse } from "../types/schedule"
 
 function territoryText(isHome: boolean){
@@ -16,24 +16,11 @@ function Schedule() {
 
     const { year, division, teamSlug } = useParams()
 
-    const [data, setData] = useState<TeamScheduleResponse | null>(null)
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-
-    const played = useMemo(() => data?.played.reverse() ?? [], [data])
+    const {data, loading, error} = useApi<TeamScheduleResponse>(`/teams/${division}/${teamSlug}/schedule?year=${year}`);
+    const played = useMemo(() => data ? [...data.played].reverse() : [], [data])
     const upcoming = useMemo(() => data?.upcoming ?? [], [data])
     //only recomputes played/upcoming when data (team) changes
 
-    useEffect(() => {
-
-        setLoading(true)
-        setError(null)
-
-        apiGet<TeamScheduleResponse>(`/teams/${division}/${teamSlug}/schedule?year=${year}`)
-            .then(setData)
-            .catch((e) => setError(e.message ?? String(e)))
-            .finally(() => setLoading(false))
-    }, [year, division, teamSlug])
 
     return(
         <div className="space-y-4">

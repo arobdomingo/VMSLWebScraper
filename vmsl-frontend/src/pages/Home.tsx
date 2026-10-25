@@ -1,58 +1,22 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
-import { apiGet } from "../api/client";
+import { useMemo, useState } from "react";
+import { useApi } from "../hooks/useApi";
 import type { DivisionsResponse } from "../types/division";
-import type { Team, TeamsResponse } from "../types/teams";
+import type { TeamsResponse } from "../types/teams";
 
 
 function Home(){
 
     const navigate = useNavigate()
 
-    const [year, setYear] = useState("2026")
+    const [year, setYear] = useState(String(new Date().getMonth() >= 7 ? new Date().getFullYear() + 1 : new Date().getFullYear()))
 
-    const [divisionsData, setDivisionsData] = useState<DivisionsResponse | null>(null)
-    const [divisionsLoading, setDivisionLoading] = useState(false)
-    const [divisionsError, setDivisionsError] = useState<string | null>(null)
-
-    const [selectedDivision, setSelectedDivision] = useState("")
-    const [selectedTeam, setSelectedTeam] = useState("")
-
-    const [teams, setTeams] = useState<Team[]>()
-    const [teamsLoading, setTeamsLoading] = useState(false)
-    const [teamsError, setTeamsError] = useState<string | null>(null)
-
-    useEffect(() => {
-        setDivisionLoading(true)
-        setDivisionsError(null)
-
-        apiGet<DivisionsResponse>(`/divisions/grouped?year=${year}`)
-            .then((res) => {
-                setDivisionsData(res)
-            })
-            .catch((e) => setDivisionsError(e.message ?? String(e)))
-            .finally(() => setDivisionLoading(false))
-    }, [year])
-
-    useEffect(() => {
-        if (!selectedDivision) {
-            setTeams([])
-            setSelectedTeam("")
-            return
-        }
-
-        setTeamsLoading(true)
-        setTeamsError(null)
-        setSelectedTeam("")
-
-        apiGet<TeamsResponse>(`/divisions/${selectedDivision}/teams?year=${year}`)
-            .then((res) => {
-                setTeams(res.teams)
-            })
-            .catch((e) => setTeamsError(e.message ?? String(e)))
-            .finally(() => setTeamsLoading(false))
-
-    }, [selectedDivision, year])
+    const [selectedDivision, setSelectedDivision] = useState("");
+    const [selectedTeam, setSelectedTeam] = useState("");
+    const validYear = /^\d{4}$/.test(year) && Number(year) >= 1900 && Number(year) <= 2100;
+    const {data: divisionsData, loading: divisionsLoading, error: divisionsError} = useApi<DivisionsResponse>(validYear ? `/divisions/grouped?year=${year}` : null);
+    const {data: teamsData, loading: teamsLoading, error: teamsError} = useApi<TeamsResponse>(validYear && selectedDivision ? `/divisions/${selectedDivision}/teams?year=${year}` : null);
+    const teams = teamsData?.teams;
 
     const flatDivisions = useMemo(() => {
         if(!divisionsData) return []
@@ -73,38 +37,39 @@ function Home(){
 
     return (
         <div className = "space-y-6">
-            <div>
-                <h1 className="text-4xl font-semibold leading-tight">Find your team</h1>
+            <div className="hero"><div>
+                <div className="eyebrow mb-4">Vancouver Metro Soccer League</div>
+                <h1 className="text-4xl font-semibold leading-tight">Your club. Every angle.</h1>
                 <p className="mt-2 text-gray-600">
-                    Select a season, division, and team to open the Team Hub.
+                    Explore the table, follow your form, and discover the numbers behind your season.
                 </p>
-            </div>
+            </div><aside className="pitch"><div className="text-xs uppercase tracking-widest text-emerald-300">The local game, in focus</div><div className="mt-4 text-2xl font-semibold">From the touchline<br/>to the table.</div><p className="mt-3 text-sm">Standings · Fixtures · Player leaders</p></aside></div>
 
             <div className="rounded-lg border bg-white p-6 space-y-5">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Year
+                        <label htmlFor="season" className="block text-sm font-medium text-gray-700 mb-2">
+                            Season ending year
                         </label>
                         <input 
-                            type="number"
+                            id="season" min="1900" max="2100" type="number"
                             value={year}
-                            onChange = {(e) => setYear(e.target.value)}
+                            onChange = {(e) => { setYear(e.target.value); setSelectedDivision(""); setSelectedTeam(""); }}
                             className="w-full rounded-md border px-3 py-2 text-sm"
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor="division" className="block text-sm font-medium text-gray-700 mb-2">
                             Division
                         </label>
                         <select
-                            value = {selectedDivision}
-                            onChange={(e) => setSelectedDivision(e.target.value)}
+                            id="division" value = {selectedDivision}
+                            onChange={(e) => { setSelectedDivision(e.target.value); setSelectedTeam(""); }}
                             className="w-full rounded-md border px-3 py-2 text-sm"
                             disabled={divisionsLoading || !!divisionsError}
                         >
-                            <option value="">Select Division</option>
+                            <option value="">Select division</option>
                             {flatDivisions.map((division) => (
                                 <option key={division.code} value={division.code}>
                                     {division.category_name} • {division.name}
@@ -115,11 +80,11 @@ function Home(){
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="team" className="block text-sm font-medium text-gray-700 mb-2">
                         Team
                     </label>
                     <select
-                        value={selectedTeam}
+                        id="team" value={selectedTeam}
                         onChange={(e) => setSelectedTeam(e.target.value)}
                         className="w-full rounded-md border px-3 py-2 text-sm"
                         disabled={!selectedDivision || teamsLoading || !!teamsError}
@@ -135,7 +100,7 @@ function Home(){
                 </div>
                 
                 {divisionsLoading && (
-                    <div className="text-sm text-gray-600">Loading divisiosn...</div>
+                    <div className="text-sm text-gray-600">Loading divisions...</div>
                 )}
 
                 {divisionsError && (
@@ -177,31 +142,5 @@ function Home(){
     )
 }
 
-/*
-
-function Home(){
-    const navigate = useNavigate(); //changes the url programatically
-
-    const goToSample = () => {
-        //navigate("/team/2026/1/bby-selects-w-eagles");
-        //navigate("/team/2026/3/east-van-fc");
-        navigate("/team/2026/1/bct-rovers-hurricanes-a");
-    };
-
-    return(
-        <div className="space-y-4">
-            <h1 className="text-2xl font-semibold">Find your team</h1>
-            <p className="text-gray-600">
-                This will become the Year - Division - Team Picker
-            </p>
-
-            <button onClick={goToSample} className="rounded-lg bg-black px-4 py-2 text-white">
-                Go to sample team hub
-            </button>
-        </div>
-    )
-}
-
-*/
 
 export default Home;

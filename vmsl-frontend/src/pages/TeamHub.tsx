@@ -1,9 +1,9 @@
 import { Link, useParams } from "react-router-dom"
-import { useEffect, useState } from "react";
-import { apiGet } from "../api/client"
-import type { ScorerRow, ScorersResponse } from "../types/scorers";
-import type { MvpRow, MvpsResponse } from "../types/mvps";
-import type { KeeperRow, ShutoutsResponse } from "../types/shutouts";
+
+import { useApi } from "../hooks/useApi"
+import type { ScorersResponse } from "../types/scorers";
+import type { MvpsResponse } from "../types/mvps";
+import type { ShutoutsResponse } from "../types/shutouts";
 
 interface TeamOverview {
     year: number
@@ -11,7 +11,7 @@ interface TeamOverview {
     team_name: string
     team_slug: string
 
-    standings: {
+    standings: null | {
         position: number
         standing: {
             games_played: number
@@ -47,7 +47,7 @@ interface TeamOverview {
         goals_against: number
     }[]
 
-    upcoming_fixture: {
+    upcoming_fixture: null | {
         date: string
         opponent: string
         is_home: boolean
@@ -67,47 +67,13 @@ function TeamHub(){
 
     const{ year, division, teamSlug } = useParams();
 
-    //useState is a React Hook, creating a piece of a state with
-    const [data, setData] = useState<TeamOverview | null>(null); //initial value is null
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const [scorers, setScorers] = useState<ScorerRow[] | null>(null);
-    const [scorersError, setScorersError] = useState<string | null>(null);
-
-    const [mvps, setMvps] = useState<MvpRow[] | null>(null);
-    const [mvpsError, setMvpsError] = useState<string | null>(null);
-
-    const [shutouts, setShutouts] = useState<KeeperRow[] | null>(null);
-    const [shutoutsError, setShutoutsError] = useState<string | null>(null);
-
-    //run the following when something changes - fetching data, subcribing to events, side effects
-    //if any of year, division or teamSlug change - the effect runs
-    useEffect(() => {
-        if(!year || !division || !teamSlug) return;
-
-        setLoading(true);
-        setError(null);
-        
-        apiGet<TeamOverview>(`/teams/${division}/${teamSlug}/overview?year=${year}`)
-            .then(setData)
-            .catch((e) => setError(e.message ?? String(e)))
-            .finally(() => setLoading(false));
-
-    }, [year, division, teamSlug])
-
-    useEffect(() => {
-        setScorers(null);
-        setScorersError(null);
-
-        apiGet<ScorersResponse>(`/divisions/${year}/${division}/scorers`)
-            .then((res) => {
-                const all = res.pools.flatMap((pool) => pool.scorers)
-                setScorers(all)
-            })
-            .catch((e) => setScorersError(e.message ?? String(e)))
-
-    }, [year, division, data?.team_name])
+    const {data, loading, error} = useApi<TeamOverview>(`/teams/${division}/${teamSlug}/overview?year=${year}`);
+    const {data: scorersData, error: scorersError} = useApi<ScorersResponse>(`/divisions/${year}/${division}/scorers`);
+    const {data: mvpsData, error: mvpsError} = useApi<MvpsResponse>(`/divisions/${year}/${division}/mvps`);
+    const {data: shutoutsData, error: shutoutsError} = useApi<ShutoutsResponse>(`/divisions/${year}/${division}/shutouts`);
+    const scorers = scorersData?.pools.flatMap(pool => pool.scorers);
+    const mvps = mvpsData?.pools.flatMap(pool => pool.player_mvps);
+    const shutouts = shutoutsData?.pools.flatMap(pool => pool.keepers);
 
     const teamGoals = data?.standings?.standing?.goals_for ?? 0;
 
@@ -118,18 +84,7 @@ function TeamHub(){
             .slice(0,5)
         : []
     
-    useEffect(() => {
 
-        setMvps(null)
-        setMvpsError(null)
-
-        apiGet<MvpsResponse>(`/divisions/${year}/${division}/mvps`)
-            .then((res) => {
-                const all = res.pools.flatMap((pool) => pool.player_mvps)
-                setMvps(all)
-            })
-            .catch((e) => setMvpsError(e.message ?? String(e)))
-    }, [year, division])
 
     const teamTopMvps = mvps ?
         mvps
@@ -138,17 +93,7 @@ function TeamHub(){
             .slice(0, 5)
         : []
 
-    useEffect(() => {
-        setShutouts(null);
-        setShutoutsError(null);
-      
-        apiGet<ShutoutsResponse>(`/divisions/${year}/${division}/shutouts`)
-          .then((res) => {
-            const all = res.pools.flatMap((p) => p.keepers);
-            setShutouts(all);
-          })
-          .catch((e) => setShutoutsError(e.message ?? String(e)));
-      }, [year, division]);
+
 
     const teamTopShutouts = shutouts ?
         shutouts
@@ -182,14 +127,12 @@ function TeamHub(){
                 <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
                     <div className="font-medium">Request failed</div>
                     <div className="mt-1 text-sm">{error}</div>
-                    <div className="mt-2 text-sm">
-                        If this mentions CORS, your backend must allow{" "}
-                        <code>http://localhost:5173</code>.
-                    </div>
+
                 </div>
             )}
 
-            {data && (
+            {data && !data.standings && <p className="rounded-lg border bg-white p-4">No standings published for this team yet.</p>}
+            {data && data.standings && (
                 <>
 
                     <div className="rounded-lg border bg-white p-6 space-y-6">
@@ -320,6 +263,7 @@ function TeamHub(){
                             <div className="rounded-lg border bg-white p-6">
                                 <h2 className="text-xl font-semibold text-center mb-6">Recent Form</h2>
 
+                                {data.form.length === 0 && <p className="text-sm text-gray-600">No completed matches yet.</p>}
                                 <div className="flex justify-center gap-2 mb-6">
                                     {data.form.slice(0, 5).map((match, idx) => (
                                         <span 

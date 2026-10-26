@@ -1,3 +1,4 @@
+import { LoadingMessage, ErrorMessage } from "../components/RequestFeedback";
 import { useMemo, useState } from "react"
 import { Link, useParams, useLocation } from "react-router-dom"
 import { useApi } from "../hooks/useApi"
@@ -84,15 +85,11 @@ function DivisionScorers(){
             </div>
 
             {loading && (
-                <div className="rounded-lg border bg-white p-4">
-                    Loading division scorers...
-                </div>
+                <LoadingMessage>Loading division scorers...</LoadingMessage>
             )}
 
             {error && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
-                    {error}
-                </div>
+                <ErrorMessage message={error} />
             )}
 
             {data && (

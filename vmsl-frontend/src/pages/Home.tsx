@@ -46,12 +46,14 @@ function Home(){
             </div><aside className="pitch"><div className="text-xs uppercase tracking-widest text-emerald-300">The local game, in focus</div><div className="mt-4 text-2xl font-semibold">From the touchline<br/>to the table.</div><p className="mt-3 text-sm">Standings · Fixtures · Player leaders</p></aside></div>
 
             <div className="rounded-lg border bg-white p-6 space-y-5">
+                {!validYear && <p id="season-error" role="alert">Enter a season ending year from 1900 to 2100.</p>}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label htmlFor="season" className="block text-sm font-medium text-gray-700 mb-2">
                             Season ending year
                         </label>
                         <input 
+                            aria-invalid={!validYear} aria-describedby={!validYear ? "season-error" : undefined}
                             id="season" min="1900" max="2100" type="number"
                             value={year}
                             onChange = {(e) => { setYear(e.target.value); setSelectedDivision(""); setSelectedTeam(""); }}
@@ -67,7 +69,7 @@ function Home(){
                             id="division" value = {selectedDivision}
                             onChange={(e) => { setSelectedDivision(e.target.value); setSelectedTeam(""); }}
                             className="w-full rounded-md border px-3 py-2 text-sm"
-                            disabled={divisionsLoading || !!divisionsError}
+                            disabled={!validYear || divisionsLoading || !!divisionsError || flatDivisions.length === 0}
                         >
                             <option value="">Select division</option>
                             {flatDivisions.map((division) => (
@@ -87,7 +89,7 @@ function Home(){
                         id="team" value={selectedTeam}
                         onChange={(e) => setSelectedTeam(e.target.value)}
                         className="w-full rounded-md border px-3 py-2 text-sm"
-                        disabled={!selectedDivision || teamsLoading || !!teamsError}
+                        disabled={!validYear || !selectedDivision || teamsLoading || !!teamsError || !teams?.length}
                     >
                         <option value="">Select team</option>
                         {teams?.map((team) => (
@@ -100,25 +102,27 @@ function Home(){
                 </div>
                 
                 {divisionsLoading && (
-                    <div className="text-sm text-gray-600">Loading divisions...</div>
+                    <div role="status" className="text-sm text-gray-600">Loading divisions...</div>
                 )}
 
                 {divisionsError && (
-                    <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                    <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
                         Failed to load divisions: {divisionsError}
                     </div>
                 )}
 
                 {teamsLoading && selectedDivision && (
-                    <div className="text-sm text-gray-600">Loading teams...</div>
+                    <div role="status" className="text-sm text-gray-600">Loading teams...</div>
                 )}
 
                 {teamsError && (
-                    <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                    <div role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
                         Failed to load teams: {teamsError}
                     </div>
                 )}
 
+                {divisionsData && flatDivisions.length === 0 && <p role="status">No divisions published for this season.</p>}
+                {teamsData && teams?.length === 0 && <p role="status">No teams published for this division.</p>}
                 {selectedTeamObj && (
                     <div className="rounded-md border bg-gray-50 p-4 text-sm">
                         <div className="font-medium">{selectedTeamObj.team_name}</div>
@@ -130,7 +134,7 @@ function Home(){
 
                 <button
                     onClick={handleGoToTeamHub}
-                    disabled={!selectedDivision || !selectedTeam}
+                    disabled={!validYear || !selectedDivision || !selectedTeamObj || teamsLoading}
                     className="rounded-lg bg-black px-5 py-3 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-40"
                 >
                     Go to Team Hub

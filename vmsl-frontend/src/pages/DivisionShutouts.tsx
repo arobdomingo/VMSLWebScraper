@@ -1,3 +1,4 @@
+import { LoadingMessage, ErrorMessage } from "../components/RequestFeedback";
 import { useMemo, useState } from "react";
 import { Link, useParams, useLocation } from "react-router-dom";
 import { useApi } from "../hooks/useApi";
@@ -64,21 +65,17 @@ function DivisionShutouts() {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search keeper or team..."
+          aria-label="Search keepers or teams" placeholder="Search keeper or team..."
           className="w-full rounded-md border px-3 py-2 text-sm"
         />
       </div>
 
       {loading && (
-        <div className="rounded-lg border bg-white p-4">
-          Loading division shutouts...
-        </div>
+        <LoadingMessage>Loading division shutouts...</LoadingMessage>
       )}
 
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
-          {error}
-        </div>
+        <ErrorMessage message={error} />
       )}
 
       {data && (
@@ -90,6 +87,7 @@ function DivisionShutouts() {
           </div>
 
           <div className="divide-y">
+            {filtered.length === 0 && <p role="status" className="p-4">No keepers match this search.</p>}
             {filtered.map((keeper, idx) => {
               const isHighlighted = keeper.team_name === selectedTeam;
 

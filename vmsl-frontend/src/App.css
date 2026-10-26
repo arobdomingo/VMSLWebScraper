@@ -18,3 +18,12 @@ th, td { padding: 1rem; text-align: right; border-bottom: 1px solid #e4ece9; fon
 th:nth-child(2), td:nth-child(2) { text-align: left; width: 100%; }
 footer { color: #596d73; font-size: .8rem; padding: 2rem 0; border-top: 1px solid #dce5e3; }
 @media (max-width: 640px) { .hero { grid-template-columns: 1fr; } .pitch { display: none; } main .flex.items-center.justify-between { flex-wrap: wrap; gap: .8rem; } }
+/* Keep full statistics scrollable while retaining readable team names on phones. */
+.team-name { text-transform: none; font-size: inherit; letter-spacing: normal; color: inherit; background: inherit; }
+@media (max-width: 640px) {
+    .site-header > div { padding-inline: 1rem; flex-wrap: wrap; }
+    main#main { padding: 1.5rem 1rem; }
+    .table-scroll th, .table-scroll td { padding: .75rem .6rem; }
+    .table-scroll .team-name { white-space: normal; min-width: 9rem; max-width: 12rem; }
+    .table-scroll { max-width: 100%; }
+}

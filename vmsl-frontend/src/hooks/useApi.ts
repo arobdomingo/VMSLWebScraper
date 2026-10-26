@@ -1,20 +1,24 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "../api/client";
 
-/** The request key prevents old data appearing while a new selection loads. */
+type RequestState<T> = { key: string | null; data: T | null; error: string | null; loading: boolean };
+const initialState = <T,>(key: string | null): RequestState<T> => ({ key, data: null, error: null, loading: !!key });
+
 export function useApi<T>(path: string | null) {
-    const [state, setState] = useState<{ key: string | null; data: T | null; error: string | null }>({ key: null, data: null, error: null });
+    const [state, setState] = useState(() => initialState<T>(path));
+    // Reset during render when the request key changes. This also handles A → B → A
+    // while B is still pending, without briefly exposing the previous A response.
+    if (state.key !== path) setState(initialState<T>(path));
     useEffect(() => {
         if (!path) return;
         let active = true;
-        apiGet<T>(path).then(data => {
-            if (active) setState({ key: path, data, error: null });
+        const controller = new AbortController();
+        apiGet<T>(path, controller.signal).then(data => {
+            if (active) setState({ key: path, data, error: null, loading: false });
         }).catch((error: unknown) => {
-            if (active) setState({ key: path, data: null, error: error instanceof Error ? error.message : "Request failed" });
+            if (active) setState({ key: path, data: null, error: error instanceof Error ? error.message : "Request failed", loading: false });
         });
-        return () => { active = false; };
+        return () => { active = false; controller.abort(); };
     }, [path]);
-    if (!path) return { data: null, error: null, loading: false };
-    if (state.key !== path) return { data: null, error: null, loading: true };
-    return { ...state, loading: false };
+    return state.key === path ? state : initialState<T>(path);
 }

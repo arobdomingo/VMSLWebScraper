@@ -1,3 +1,4 @@
+import { LoadingMessage, ErrorMessage } from "../components/RequestFeedback";
 import { useMemo, useState } from "react";
 import { Link, useParams, useLocation } from "react-router-dom";
 import { useApi } from "../hooks/useApi";
@@ -64,13 +65,13 @@ const { year, division, teamSlug } = useParams();
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search player or team..."
+          aria-label="Search players or teams" placeholder="Search player or team..."
           className="w-full rounded-md border px-3 py-2 text-sm"
         />
       </div>
 
-      {loading && <div className="rounded-lg border bg-white p-4">Loading division MVPs...</div>}
-      {error && <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">{error}</div>}
+      {loading && <LoadingMessage>Loading division MVPs...</LoadingMessage>}
+      {error && <ErrorMessage message={error} />}
 
       {data && (
         <div className="rounded-lg border bg-white">
@@ -81,6 +82,7 @@ const { year, division, teamSlug } = useParams();
           </div>
 
           <div className="divide-y">
+            {filtered.length === 0 && <p role="status" className="p-4">No players match this search.</p>}
             {filtered.map((p, idx) => {
               const isHighlighted = p.team_name === selectedTeam;
 

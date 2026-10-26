@@ -1,27 +1,21 @@
 import{ createBrowserRouter, RouterProvider } from "react-router-dom";
 import Layout from "./components/Layout";
-import Home from "./pages/Home"
-import TeamHub from "./pages/TeamHub"
-import Standings from "./pages/Standings"
-import Schedule from "./pages/Schedule"
-import DivisionScorers from "./pages/DivisionScorers"
-import DivisionMvps from "./pages/DivisionMvps";
-import DivisionShutouts from "./pages/DivisionShutouts";
-import GoalData from "./pages/GoalData";
+import { LoadingMessage } from "./components/RequestFeedback";
 import './App.css'
 
 const router = createBrowserRouter([
   {
     element: <Layout/>,
+    hydrateFallbackElement: <LoadingMessage>Loading page...</LoadingMessage>,
     children: [
-      { path: "/", element: <Home/> },
-      { path: "/team/:year/:division/:teamSlug", element: <TeamHub/> },
-      { path: "/divisions/:year/:division/standings", element: <Standings /> },
-      { path: "/team/:year/:division/:teamSlug/schedule", element: <Schedule /> },
-      { path: "/team/:year/:division/:teamSlug/scorers", element: <DivisionScorers />},
-      { path: "/team/:year/:division/:teamSlug/mvps", element: <DivisionMvps /> },
-      { path: "/team/:year/:division/:teamSlug/shutouts", element: <DivisionShutouts />},
-      { path: "/team/:year/:division/:teamSlug/goals", element: <GoalData />}
+      { path: "/", lazy: async () => ({ Component: (await import("./pages/Home")).default }) },
+      { path: "/team/:year/:division/:teamSlug", lazy: async () => ({ Component: (await import("./pages/TeamHub")).default }) },
+      { path: "/divisions/:year/:division/standings", lazy: async () => ({ Component: (await import("./pages/Standings")).default }) },
+      { path: "/team/:year/:division/:teamSlug/schedule", lazy: async () => ({ Component: (await import("./pages/Schedule")).default }) },
+      { path: "/team/:year/:division/:teamSlug/scorers", lazy: async () => ({ Component: (await import("./pages/DivisionScorers")).default })},
+      { path: "/team/:year/:division/:teamSlug/mvps", lazy: async () => ({ Component: (await import("./pages/DivisionMvps")).default }) },
+      { path: "/team/:year/:division/:teamSlug/shutouts", lazy: async () => ({ Component: (await import("./pages/DivisionShutouts")).default })},
+      { path: "/team/:year/:division/:teamSlug/goals", lazy: async () => ({ Component: (await import("./pages/GoalData")).default })}
     ],
   },
 ]);

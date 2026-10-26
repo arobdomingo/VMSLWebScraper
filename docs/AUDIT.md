@@ -1,4 +1,6 @@
-# Repository audit and implementation plan
+# Historical repository audit and implementation plan
+
+This records an earlier implementation pass, not the current repository baseline. See [ENGINEERING_IMPROVEMENTS.md](../ENGINEERING_IMPROVEMENTS.md) for the October 26, 2026 frontend audit and validation.
 
 ## Baseline architecture
 React 19 / TypeScript / Vite 7 / Tailwind 4 / React Router 7 render eight pages. Pages fetch FastAPI JSON endpoints. HTTPX downloads public VMSL HTML; BeautifulSoup identifies controls and pandas normalizes tables. SQLAlchemy stores standings only; other statistics are scraped on demand. There are no tests or CI checks. Database models for matches and player statistics are unused scaffolding.

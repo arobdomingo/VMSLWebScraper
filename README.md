@@ -67,14 +67,19 @@ ruff check backend tests
 ruff format --check backend tests
 cd vmsl-frontend
 npm run lint
+npm run test
 npm run build
+npx playwright install chromium
+npm run test:e2e
 npm audit
 ```
 
-`requirements-lock.txt` captures the validated Python development environment; bounded direct dependencies live in `requirements.txt` and `requirements-dev.txt`. The frontend uses `package-lock.json`. GitHub Actions runs backend tests/lint and frontend lint/build.
+`requirements-lock.txt` captures the validated Python development environment; bounded direct dependencies live in `requirements.txt` and `requirements-dev.txt`. The frontend uses `package-lock.json`. GitHub Actions is configured for backend tests/lint and frontend lint, component tests, TypeScript/build, and Chromium browser tests. Remote execution of the new checks has not been verified.
 
 Tests use synthetic HTML and mocked transport, so they are deterministic and do not burden VMSL. They cover parser contracts, nested tables, completed/unplayed fixtures, cache expiry, failed requests, API validation, team perspective and rival-window boundaries. Live browser checks supplement these tests; they do not guarantee every historical division remains supported.
 
 ## Known limits
 
-The upstream site can change markup or be unavailable. The cache is per worker and has no stale-data fallback, durable snapshots or background refresh. Match dates currently omit kickoff time and postponement status. Player rankings across pools are exploratory and are not an official league ranking. The UI has manual browser validation but no automated frontend interaction suite. See the engineering notes for the full validation record and next steps.
+The upstream site can change markup or be unavailable. The cache is per worker and has no stale-data fallback, durable snapshots or background refresh. Match dates currently omit kickoff time and postponement status. Player rankings across pools are exploratory and are not an official league ranking. The UI now has deterministic component and Chromium interaction tests; these do not replace live integration or full accessibility testing. See the engineering notes for the full validation record and next steps.
+
+See [the current frontend audit, changes, verified results and interview exercises](ENGINEERING_IMPROVEMENTS.md) for this AI-assisted engineering pass, measured asset sizes, remaining limits, and resume evidence.

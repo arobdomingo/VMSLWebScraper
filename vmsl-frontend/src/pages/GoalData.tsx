@@ -1,3 +1,4 @@
+import { LoadingMessage, ErrorMessage } from "../components/RequestFeedback";
 import GoalTrend from "../components/GoalTrend";
 import { useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
@@ -76,15 +77,14 @@ function GoalData() {
             </div>
 
             {loading && (
-                <div className="rounded-lg border bg-white p-4">Loading goal data...</div>
+                <LoadingMessage>Loading goal data...</LoadingMessage>
             )}
 
             {error && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
-                    {error}
-                </div>
+                <ErrorMessage message={error} />
             )}
 
+            {data && !selectedRow && <p role="status" className="rounded-lg border bg-white p-4">No goal statistics published for this team.</p>}
             {data && selectedRow && (
                 <>
                     {/* Snapshot Cards */}

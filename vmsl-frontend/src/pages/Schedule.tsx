@@ -1,3 +1,4 @@
+import { LoadingMessage, ErrorMessage } from "../components/RequestFeedback";
 import { useMemo } from "react"
 import { Link, useParams } from "react-router-dom"
 import { useApi } from "../hooks/useApi"
@@ -38,13 +39,10 @@ function Schedule() {
                 </div>
             )}
 
-            {loading && <div className="rounded-lg border bg-white p-4">Loading schedule...</div>}
+            {loading && <LoadingMessage>Loading schedule...</LoadingMessage>}
 
             {error && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
-                    <div className="font-medium">Request failed</div>
-                    <div className="mt-1 text-sm">{error}</div>
-                </div>
+                <ErrorMessage message={error} />
             )}
 
             {data && (

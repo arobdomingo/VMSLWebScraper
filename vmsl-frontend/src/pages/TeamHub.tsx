@@ -1,3 +1,4 @@
+import { LoadingMessage, ErrorMessage } from "../components/RequestFeedback";
 import { Link, useParams } from "react-router-dom"
 
 import { useApi } from "../hooks/useApi"
@@ -120,15 +121,11 @@ function TeamHub(){
             </div>
 
             {loading && (
-                <div className="rounded-lg border bg-white p-4">Loading overview...</div>
+                <LoadingMessage>Loading overview...</LoadingMessage>
             )}
 
             {error && (
-                <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
-                    <div className="font-medium">Request failed</div>
-                    <div className="mt-1 text-sm">{error}</div>
-
-                </div>
+                <ErrorMessage message={error} />
             )}
 
             {data && !data.standings && <p className="rounded-lg border bg-white p-4">No standings published for this team yet.</p>}
@@ -364,7 +361,7 @@ function TeamHub(){
                                             {data.standings.standing.goals_for}
                                         </div>
                                         <div className="mt-1 text-sm text-gray-600 tabular-nums">
-                                            {(data.standings.standing.goals_for / data.standings.standing.games_played).toFixed(2)} / game
+                                            {(data.standings.standing.games_played > 0 ? (data.standings.standing.goals_for / data.standings.standing.games_played).toFixed(2) : "—")} / game
                                         </div>
                                     </div>
 
@@ -374,7 +371,7 @@ function TeamHub(){
                                                 {data.standings.standing.goals_against}
                                             </div>
                                             <div className="mt-1 text-sm text0gray-600 tabular-nums">
-                                                {(data.standings.standing.goals_against / data.standings.standing.games_played).toFixed(2)} / game
+                                                {(data.standings.standing.games_played > 0 ? (data.standings.standing.goals_against / data.standings.standing.games_played).toFixed(2) : "—")} / game
                                         </div>
                                     </div>
 
@@ -384,7 +381,7 @@ function TeamHub(){
                                                 {data.standings.standing.goal_diff}
                                             </div>
                                             <div className="mt-1 text-sm text0gray-600 tabular-nums">
-                                                {(data.standings.standing.goal_diff / data.standings.standing.games_played).toFixed(2)} / game
+                                                {(data.standings.standing.games_played > 0 ? (data.standings.standing.goal_diff / data.standings.standing.games_played).toFixed(2) : "—")} / game
                                         </div>
                                     </div>
                                 </div>

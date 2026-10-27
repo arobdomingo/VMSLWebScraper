@@ -4,7 +4,7 @@ A team-focused analytics application for the **Vancouver Metro Soccer League**. 
 
 [Existing deployment](https://vmsl-web-scraper.vercel.app/) · [Repository](https://github.com/arobdomingo/VMSLWebScraper)
 
-The deployment may run an earlier revision. Changes in this workspace have not been published. This independent project is not affiliated with VMSL.
+The deployment may run an earlier revision; repository updates do not establish which revision is deployed. This independent project is not affiliated with VMSL.
 
 ## Run locally
 
@@ -49,7 +49,7 @@ React pages → useApi / apiGet → FastAPI routes → HTML parsers → HTTPX �
                                   Pydantic JSON   bounded TTL cache
 ```
 
-- **React + TypeScript, Router, Vite, Tailwind:** team navigation, searchable player lists, rankings and match analytics. `useApi` owns asynchronous request state and ignores responses after selection changes or unmounting.
+- **React + TypeScript, Router, Vite, Tailwind:** team navigation, searchable player lists, rankings and match analytics. `useApi` owns asynchronous request state, cancels obsolete requests and ignores late responses. Known API responses are checked at runtime before rendering; routes load page code on demand.
 - **FastAPI + Pydantic:** documented JSON contracts, bounded season/division inputs, meaningful 404/422 responses and safe 502 errors for source failures.
 - **HTTPX transport:** status validation, timeouts, one connection retry and a maximum of 64 cached HTML documents. A lock coalesces concurrent misses and reduces duplicate upstream requests.
 - **BeautifulSoup + pandas/lxml:** controls and leaderboard headers are parsed structurally; standings/schedules are normalized from HTML tables. Nested layout tables are excluded from player lists.
@@ -57,7 +57,7 @@ React pages → useApi / apiGet → FastAPI routes → HTML parsers → HTTPX �
 
 The existing SQLAlchemy modules remain as optional snapshot scaffolding and are **not used by the API**. Indefinitely cached database standings could disagree with freshly scraped analytics. A shared short-lived HTML cache is the simpler consistent policy for this portfolio's scope. To initialize optional tables, run `python -m backend.init_db`; PostgreSQL requires an explicit `DATABASE_URL`. Existing database contents are not migrated or deleted.
 
-See [audit and priorities](docs/AUDIT.md), [design decisions and limitations](docs/ENGINEERING.md), and [interview notes](docs/PORTFOLIO.md).
+See [current engineering status](docs/ENGINEERING.md), [feature roadmap](docs/ROADMAP.md), and [interview notes](docs/PORTFOLIO.md). The [original audit](docs/AUDIT.md) is retained as historical context.
 
 ## Validate
 
@@ -76,10 +76,18 @@ npm audit
 
 `requirements-lock.txt` captures the validated Python development environment; bounded direct dependencies live in `requirements.txt` and `requirements-dev.txt`. The frontend uses `package-lock.json`. GitHub Actions is configured for backend tests/lint and frontend lint, component tests, TypeScript/build, and Chromium browser tests. Remote execution of the new checks has not been verified.
 
-Tests use synthetic HTML and mocked transport, so they are deterministic and do not burden VMSL. They cover parser contracts, nested tables, completed/unplayed fixtures, cache expiry, failed requests, API validation, team perspective and rival-window boundaries. Live browser checks supplement these tests; they do not guarantee every historical division remains supported.
+Tests use synthetic HTML and mocked transport, so they are deterministic and do not burden VMSL. They cover parser contracts, nested tables, completed/unplayed fixtures, cache expiry, failed requests, API validation, team perspective and rival-window boundaries. Frontend component tests mock fetch; Chromium browser tests use fixed API responses at desktop, tablet and phone sizes. Earlier live smoke checks supplement these tests; none guarantee every historical division remains supported.
 
 ## Known limits
 
 The upstream site can change markup or be unavailable. The cache is per worker and has no stale-data fallback, durable snapshots or background refresh. Match dates currently omit kickoff time and postponement status. Player rankings across pools are exploratory and are not an official league ranking. The UI now has deterministic component and Chromium interaction tests; these do not replace live integration or full accessibility testing. See the engineering notes for the full validation record and next steps.
 
 See [the current frontend audit, changes, verified results and interview exercises](ENGINEERING_IMPROVEMENTS.md) for this AI-assisted engineering pass, measured asset sizes, remaining limits, and resume evidence.
+
+## Recorded verification
+
+The October 26, 2026 local verification recorded **23 backend tests**, **24 frontend tests**, and **9 Chromium checks** (three scenarios at three viewport sizes), plus passing lint, type checking and build checks. These are historical results, not a claim that checks ran again when this documentation was updated on October 27. Remote CI and deployed behavior remain unverified. See [the detailed validation report](ENGINEERING_IMPROVEMENTS.md) for methods, asset measurements and limitations.
+
+## Next features
+
+The [prioritized roadmap](docs/ROADMAP.md) focuses on head-to-head comparisons, home/away splits and fixture difficulty using existing standings and schedules. Freshness indicators and snapshot history require explicit ingestion metadata or persistence work first. Proposed features are not implemented capabilities.

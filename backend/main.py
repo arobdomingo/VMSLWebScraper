@@ -11,7 +11,13 @@ from .scraper import (
     slugify_name,
 )
 from . import models
-from .analytics import build_match_summary
+from .analytics import (
+    build_match_summary,
+    comparison,
+    venue_split,
+    fixture_difficulty,
+    completed,
+)
 from typing import Optional
 
 from typing import Annotated
@@ -20,6 +26,13 @@ from fastapi.responses import JSONResponse
 from .transport import UpstreamError
 import logging
 import os
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+
+def league_today():
+    return datetime.now(ZoneInfo("America/Vancouver")).date()
+
 
 Year = Annotated[int, Path(ge=1900, le=2100)]
 Division = Annotated[str, Path(pattern=r"^[a-zA-Z0-9_-]{1,40}$")]
@@ -160,7 +173,9 @@ def build_form_and_upcoming(year, division, team_name, last_n=5):
         )
 
     played = [m for m in team_matches if is_played(m)]
-    upcoming = [m for m in team_matches if not is_played(m)]
+    upcoming = [
+        m for m in team_matches if not is_played(m) and m["date"] >= league_today()
+    ]
 
     played_sorted = sorted(played, key=lambda m: m["date"])
     upcoming_sorted = sorted(upcoming, key=lambda m: m["date"])
@@ -629,3 +644,81 @@ async def upstream_error_handler(request: Request, exc: UpstreamError):
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get(
+    "/teams/{division}/{team_slug}/analysis", response_model=models.TeamAnalysisResponse
+)
+def team_analysis(
+    division: Division,
+    team_slug: str,
+    year: Annotated[int, Query(ge=1900, le=2100)],
+    opponent_slug: Optional[str] = None,
+):
+
+    pools = parse_standings(year, division)
+    entries = [
+        (r, f"Pool {chr(65 + i)}" if len(pools) > 1 else None)
+        for i, p in enumerate(pools)
+        for r in p
+    ]
+
+    def find(slug):
+        matches = [(r, p) for r, p in entries if slugify_name(r["team"]) == slug]
+        if not matches:
+            raise HTTPException(
+                status_code=404, detail="Team not found in this division and season."
+            )
+        if len(matches) > 1:
+            raise HTTPException(
+                status_code=409, detail="Team identity is ambiguous in this division."
+            )
+        return matches[0]
+
+    row, pool_name = find(team_slug)
+    if opponent_slug == team_slug:
+        raise HTTPException(status_code=422, detail="Choose a different opponent.")
+    opponent = find(opponent_slug) if opponent_slug else None
+    fixtures = parse_schedule(year, division)
+    team = comparison(row, pool_name, fixtures, team_slug)
+    meetings = sorted(
+        (
+            r
+            for r in fixtures
+            if opponent
+            and completed(r)
+            and {r["hometeam"], r["awayteam"]} == {row["team"], opponent[0]["team"]}
+        ),
+        key=lambda r: r["date"],
+        reverse=True,
+    )
+    pending = sorted(
+        (
+            r
+            for r in fixtures
+            if not completed(r)
+            and row["team"] in (r["hometeam"], r["awayteam"])
+            and r["date"] >= league_today()
+        ),
+        key=lambda r: r["date"],
+    )
+    next_match = build_match_summary(pending[0], row["team"]) if pending else None
+    return models.TeamAnalysisResponse(
+        team=team,
+        home=venue_split(fixtures, row["team"], True),
+        away=venue_split(fixtures, row["team"], False),
+        opponents=[
+            models.Team(
+                team_name=r["team"], team_slug=slugify_name(r["team"]), pool_name=p
+            )
+            for r, p in entries
+            if slugify_name(r["team"]) != team_slug
+        ],
+        opponent=comparison(opponent[0], opponent[1], fixtures, opponent_slug)
+        if opponent
+        else None,
+        meetings=[build_match_summary(r, row["team"]) for r in meetings],
+        next_difficulty=fixture_difficulty(row["team"], next_match.opponent, pools)
+        if next_match
+        else None,
+    )

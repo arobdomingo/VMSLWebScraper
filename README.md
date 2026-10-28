@@ -1,14 +1,21 @@
 # VMSL / Team Hub
 
-A team-focused analytics application for the **Vancouver Metro Soccer League**. Explore standings, recent form, upcoming fixtures, scoring leaders, MVPs, shutouts and goal statistics from publicly available league pages.
+A team-focused analytics application for the **Vancouver Metro Soccer League**. Explore standings, fixtures, recent form, player leaderboards and goal statistics from public league pages.
 
-[Existing deployment](https://vmsl-web-scraper.vercel.app/) · [Repository](https://github.com/arobdomingo/VMSLWebScraper)
+[Web app](https://vmsl-web-scraper.vercel.app/) · [Source](https://github.com/arobdomingo/VMSLWebScraper)
 
-The deployment may run an earlier revision. Changes in this workspace have not been published. This independent project is not affiliated with VMSL.
+## Features
+
+- Division standings, team overviews, schedules and scoring, MVP and shutout leaderboards.
+- Goal rankings, per-game statistics and match goal-difference charts.
+- Head-to-head team comparisons and completed meetings within a selected season and division.
+- Home/away records, scoring, conceding and clean-sheet splits.
+- Next-fixture difficulty based on the opponent's current pool points per game: High ≥ 2, Medium ≥ 1, Low < 1. This is descriptive, not a prediction; teams with no games or in another pool receive no rating.
+- Responsive layouts, searchable player lists and shareable opponent selections.
 
 ## Run locally
 
-Use **Python 3.12** and **Node.js 22** (Node 22.12+). Run commands from the repository root unless shown otherwise.
+Requires **Python 3.12**, **Node.js 22.12+** and npm. From the repository root:
 
 ```bash
 python3.12 -m venv .venv
@@ -17,69 +24,51 @@ pip install -r backend/requirements-lock.txt
 python -m uvicorn backend.main:app --reload --env-file backend/.env.example
 ```
 
+In another terminal:
+
 ```bash
 cd vmsl-frontend
 npm ci
 npm run dev
 ```
 
-Open `http://localhost:5173`. API documentation: `http://127.0.0.1:8000/docs`; health: `/health`. The API requires Internet access to retrieve league data. No database or credentials are required to browse the application.
-
-The season is identified by its **ending year**: `2027` means 2026–27. The picker proposes a year based on the local date; historical availability depends on the source.
-
-## Configuration
-
-Frontend: copy `vmsl-frontend/.env.example` to `vmsl-frontend/.env.local` to override `VITE_API_BASE_URL`. Vite embeds it at build time; it must contain no secrets.
-
-Backend environment variables:
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `SCRAPE_CACHE_TTL` | `300` seconds | Per-process HTML freshness window |
-| `CORS_ORIGINS` | Local Vite origins and existing Vercel origin | Comma-separated frontend origins |
-| `DATABASE_URL` | `sqlite:///./vmsl.db` | Optional legacy snapshot utilities only |
-
-Environment files are loaded only when explicitly passed with `--env-file`. Render uses `render.yaml` from the repository root. Configure the frontend API URL and backend CORS origins for your own deployment. A static frontend host needs an SPA rewrite to `index.html` for deep links (provided in `vmsl-frontend/vercel.json`).
+Open `http://localhost:5173`. API documentation is at `http://127.0.0.1:8000/docs`. Internet access is required for league data; no database or credentials are needed. Select a season by its ending year: `2027` means 2026–27.
 
 ## Architecture
 
-```text
-React pages → useApi / apiGet → FastAPI routes → HTML parsers → HTTPX → VMSL
-                                        ↓             ↓
-                                  Pydantic JSON   bounded TTL cache
-```
+React, TypeScript, React Router, Vite and Tailwind render the interface. FastAPI and Pydantic expose normalized JSON. BeautifulSoup and pandas/lxml parse public HTML fetched through HTTPX. A bounded per-process cache reuses source documents for five minutes by default. Team analytics are derived from standings and completed fixtures without additional upstream sources.
 
-- **React + TypeScript, Router, Vite, Tailwind:** team navigation, searchable player lists, rankings and match analytics. `useApi` owns asynchronous request state and ignores responses after selection changes or unmounting.
-- **FastAPI + Pydantic:** documented JSON contracts, bounded season/division inputs, meaningful 404/422 responses and safe 502 errors for source failures.
-- **HTTPX transport:** status validation, timeouts, one connection retry and a maximum of 64 cached HTML documents. A lock coalesces concurrent misses and reduces duplicate upstream requests.
-- **BeautifulSoup + pandas/lxml:** controls and leaderboard headers are parsed structurally; standings/schedules are normalized from HTML tables. Nested layout tables are excluded from player lists.
-- **Pure analytics:** match results are calculated from the selected team's perspective. Nearby rivals use a bounded window; played fixtures and goal trends are chronological.
+The frontend cancels obsolete requests, checks consumed API response shapes at runtime, and loads pages on demand. Tests use synthetic HTML and fixed API fixtures. Optional SQLAlchemy snapshot utilities are separate from the API and are not required for browsing.
 
-The existing SQLAlchemy modules remain as optional snapshot scaffolding and are **not used by the API**. Indefinitely cached database standings could disagree with freshly scraped analytics. A shared short-lived HTML cache is the simpler consistent policy for this portfolio's scope. To initialize optional tables, run `python -m backend.init_db`; PostgreSQL requires an explicit `DATABASE_URL`. Existing database contents are not migrated or deleted.
+## Configuration
 
-See [audit and priorities](docs/AUDIT.md), [design decisions and limitations](docs/ENGINEERING.md), and [interview notes](docs/PORTFOLIO.md).
+| Variable | Purpose |
+|---|---|
+| `VITE_API_BASE_URL` | Frontend API origin; defaults to `http://127.0.0.1:8000`. Set in `vmsl-frontend/.env.local` before building. |
+| `SCRAPE_CACHE_TTL` | Backend HTML cache lifetime in seconds; defaults to `300`. |
+| `CORS_ORIGINS` | Comma-separated allowed frontend origins. |
+| `DATABASE_URL` | Optional snapshot utilities only; defaults to `sqlite:///./vmsl.db`. |
+
+Examples are in `backend/.env.example` and `vmsl-frontend/.env.example`. Backend environment files require `--env-file`. Never place secrets in Vite variables. Render uses `render.yaml`; Vercel deep-link rewrites are configured in `vmsl-frontend/vercel.json`.
 
 ## Validate
 
 ```bash
+# Backend, from repository root
 python -m pytest -q
 ruff check backend tests
-ruff format --check backend tests
+
+# Frontend
 cd vmsl-frontend
-npm run lint
-npm run test
-npm run build
+npm run lint && npm run test && npm run build
 npx playwright install chromium
 npm run test:e2e
-npm audit
 ```
 
-`requirements-lock.txt` captures the validated Python development environment; bounded direct dependencies live in `requirements.txt` and `requirements-dev.txt`. The frontend uses `package-lock.json`. GitHub Actions is configured for backend tests/lint and frontend lint, component tests, TypeScript/build, and Chromium browser tests. Remote execution of the new checks has not been verified.
+GitHub Actions runs backend and frontend checks. Python dependencies have a tested-environment lockfile; npm uses `package-lock.json`.
 
-Tests use synthetic HTML and mocked transport, so they are deterministic and do not burden VMSL. They cover parser contracts, nested tables, completed/unplayed fixtures, cache expiry, failed requests, API validation, team perspective and rival-window boundaries. Live browser checks supplement these tests; they do not guarantee every historical division remains supported.
+## Data notes
 
-## Known limits
+League availability and markup can change. The cache has no durable history or offline fallback. Comparisons cover only the selected season and available fixtures; they are not all-time records. Home/away points use 3 for a win and 1 for a draw and may differ from official standings adjustments. Next-fixture selection uses unscored fixtures dated today or later in Vancouver; kickoff times and postponement status are not currently modeled. Player rankings across pools are exploratory.
 
-The upstream site can change markup or be unavailable. The cache is per worker and has no stale-data fallback, durable snapshots or background refresh. Match dates currently omit kickoff time and postponement status. Player rankings across pools are exploratory and are not an official league ranking. The UI now has deterministic component and Chromium interaction tests; these do not replace live integration or full accessibility testing. See the engineering notes for the full validation record and next steps.
-
-See [the current frontend audit, changes, verified results and interview exercises](ENGINEERING_IMPROVEMENTS.md) for this AI-assisted engineering pass, measured asset sizes, remaining limits, and resume evidence.
+This independent project is not affiliated with VMSL. The hosted app may run a different revision from the repository.

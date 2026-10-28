@@ -50,6 +50,11 @@ export function validateResponse(path: string, data: unknown) {
         shape = { teams: [{ team_name: 'string', team_slug: 'string', pool_name: poolName }] };
     } else if (path.includes('/standings')) {
         shape = { pools: [{ pool_name: poolName, teams: [{ ...standing, position: 'number', team_name: 'string' }] }] };
+    } else if (path.includes('/analysis')) {
+        const rate = nullable('number');
+        const split: Shape = { games_played: 'number', wins: 'number', draws: 'number', losses: 'number', goals_for: 'number', goals_against: 'number', clean_sheets: 'number', points_per_game: rate, gf_per_game: rate, ga_per_game: rate };
+        const team: Shape = { team_name: 'string', team_slug: 'string', pool_name: nullable('string'), position: 'number', points_per_game: rate, gf_per_game: rate, ga_per_game: rate, form: [match] };
+        shape = { team, home: split, away: split, opponents: [{team_name: 'string', team_slug: 'string', pool_name: poolName}], opponent: nullable(team), meetings: [match], next_difficulty: nullable({label: 'string', opponent_ppg: rate, opponent_games: 'number'}) };
     } else if (path.includes('/overview')) {
         shape = {
             team_name: 'string', form: [match],

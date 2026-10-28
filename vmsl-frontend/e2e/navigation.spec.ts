@@ -1,4 +1,6 @@
 import { test, expect } from '@playwright/test';
+const split = { games_played: 1, wins: 1, draws: 0, losses: 0, goals_for: 2, goals_against: 0, clean_sheets: 1, points_per_game: 3, gf_per_game: 2, ga_per_game: 0 };
+const comparison = { team_name: 'Test Football Club With A Long Name', team_slug: 'test-fc', pool_name: null, position: 1, points_per_game: 3, gf_per_game: 2, ga_per_game: 0, form: [] };
 const standing = { position: 1, team_name: 'Test Football Club With A Long Name', games_played: 0, points: 0, wins: 0, draws: 0, losses: 0, goals_for: 0, goals_against: 0, goal_diff: 0 };
 test.beforeEach(async ({ page }) => {
     await page.route('http://127.0.0.1:8000/**', async route => {
@@ -7,6 +9,7 @@ test.beforeEach(async ({ page }) => {
         if (path === '/divisions/grouped') body = { categories: [{ category_name: 'Open', divisions: [{ code: 'prem', name: 'Premier' }] }] };
         else if (path.endsWith('/teams')) body = { teams: [{ team_name: standing.team_name, team_slug: 'test-fc' }] };
         else if (path.endsWith('/overview')) body = { team_name: standing.team_name, standings: { position: 1, standing, rivals_above: [], rivals_below: [] }, form: [], upcoming_fixture: null };
+        else if (path.endsWith('/analysis')) body = {team: comparison, home: split, away: {...split, games_played: 0, wins: 0, goals_for: 0, clean_sheets: 0, points_per_game: null, gf_per_game: null, ga_per_game: null}, opponents: [{team_name: 'Opponent FC', team_slug: 'opponent-fc', pool_name: null}], opponent: new URL(route.request().url()).searchParams.has('opponent_slug') ? {...comparison, team_name: 'Opponent FC', team_slug: 'opponent-fc'} : null, meetings: [], next_difficulty: {label: 'High', opponent_ppg: 2, opponent_games: 4}};
         else if (path.endsWith('/standings')) body = { pools: [{ pool_name: 'Pool A', teams: [standing] }] };
         else if (path.endsWith('/schedule')) body = { year: 2027, division: 'prem', team_name: standing.team_name, played: [], upcoming: [] };
         else if (path.endsWith('/scorers')) body = { pools: [{ scorers: [{ player_name: 'Alex Player', team_name: standing.team_name, goals: 3 }] }] };
@@ -25,6 +28,14 @@ test('picker, standings, fixtures and player pages remain usable across viewport
     await page.getByRole('button', { name: 'Go to Team Hub' }).click();
     await expect(page.getByRole('heading', { name: 'Team Hub', exact: true })).toBeVisible();
     await expect(page.getByText(/NaN|Infinity/)).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Home & away' })).toBeVisible();
+    await expect(page.getByText('No completed away fixtures.')).toBeVisible();
+    await page.getByLabel('Compare with').selectOption('opponent-fc');
+    await expect(page.getByRole('heading', { name: 'Meetings this season' })).toBeVisible();
+    await expect(page.getByText('No completed meetings in the available schedule.')).toBeVisible();
+    await expect(page).toHaveURL(/opponent=opponent-fc/);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+    await page.screenshot({ path: `test-results/analysis-${test.info().project.name}.png`, fullPage: true });
     await page.getByRole('link', { name: 'View Full Table' }).click();
     await expect(page.getByRole('table')).toBeVisible();
     await expect(page.getByRole('rowheader', { name: standing.team_name })).toBeVisible();

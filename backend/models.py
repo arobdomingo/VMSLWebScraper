@@ -207,3 +207,43 @@ class GoalDataResponse(BaseModel):
     division: str
     teams: list[TeamGoalData]
     insights: GoalDataInsight
+
+
+class VenueSplit(BaseModel):
+    games_played: int
+    wins: int
+    draws: int
+    losses: int
+    goals_for: int
+    goals_against: int
+    clean_sheets: int
+    points_per_game: Optional[float]
+    gf_per_game: Optional[float]
+    ga_per_game: Optional[float]
+
+
+class FixtureDifficulty(BaseModel):
+    label: str
+    opponent_ppg: Optional[float] = None
+    opponent_games: int = 0
+
+
+class TeamComparison(BaseModel):
+    team_name: str
+    team_slug: str
+    pool_name: Optional[str]
+    position: int
+    points_per_game: Optional[float]
+    gf_per_game: Optional[float]
+    ga_per_game: Optional[float]
+    form: list[MatchSummary]
+
+
+class TeamAnalysisResponse(BaseModel):
+    team: TeamComparison
+    home: VenueSplit
+    away: VenueSplit
+    opponents: list[Team]
+    opponent: Optional[TeamComparison] = None
+    meetings: list[MatchSummary]
+    next_difficulty: Optional[FixtureDifficulty] = None

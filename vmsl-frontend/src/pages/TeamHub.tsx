@@ -1,3 +1,5 @@
+import TeamAnalysis, { Difficulty } from "../components/TeamAnalysis";
+import type { TeamAnalysis as Analysis } from "../types/analysis";
 import { LoadingMessage, ErrorMessage } from "../components/RequestFeedback";
 import { Link, useParams } from "react-router-dom"
 
@@ -72,6 +74,7 @@ function TeamHub(){
     const {data: scorersData, error: scorersError} = useApi<ScorersResponse>(`/divisions/${year}/${division}/scorers`);
     const {data: mvpsData, error: mvpsError} = useApi<MvpsResponse>(`/divisions/${year}/${division}/mvps`);
     const {data: shutoutsData, error: shutoutsError} = useApi<ShutoutsResponse>(`/divisions/${year}/${division}/shutouts`);
+    const analysis = useApi<Analysis>(`/teams/${division}/${teamSlug}/analysis?year=${year}`);
     const scorers = scorersData?.pools.flatMap(pool => pool.scorers);
     const mvps = mvpsData?.pools.flatMap(pool => pool.player_mvps);
     const shutouts = shutoutsData?.pools.flatMap(pool => pool.keepers);
@@ -226,6 +229,7 @@ function TeamHub(){
                                     View Full Schedule
                                 </Link>
 
+                                {data.upcoming_fixture && <Difficulty data={analysis.data} />}
                                 {data.upcoming_fixture ? (
                                     <div className="grid grid-cols-2 gap-4 text-sm">
                                         <div>
@@ -494,6 +498,7 @@ function TeamHub(){
                 </>
             )} 
 
+            {data && <TeamAnalysis year={year!} division={division!} teamSlug={teamSlug!} data={analysis.data} loading={analysis.loading} error={analysis.error} />}
         </div>
 
     )

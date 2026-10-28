@@ -189,6 +189,7 @@ def test_schedule_parses_unplayed_and_completed(monkeypatch):
 
 
 def test_team_overview_and_goal_insights(monkeypatch):
+    monkeypatch.setattr(main, "league_today", lambda: date(2026, 9, 20))
     monkeypatch.setattr(main, "parse_standings", lambda *_: [[row(1), row(2)]])
     fixtures = [
         dict(
